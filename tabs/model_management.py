@@ -26,7 +26,7 @@ def refresh_cached_models():
 
 def delete_cached_model(repo_id):
     if not repo_id or repo_id == "No models installed":
-        return "Please select a valid model.", refresh_cached_models()
+        return "Please select a valid model."
         
     try:
         cache = scan_cache_dir()
@@ -37,10 +37,10 @@ def delete_cached_model(repo_id):
         for repo in cache.repos:
             if repo.repo_id == clean_repo_id:
                 shutil.rmtree(repo.repo_path, ignore_errors=True)
-                return f"Successfully deleted model: {clean_repo_id}", refresh_cached_models()
-        return f"Model {clean_repo_id} not found in cache.", refresh_cached_models()
+                return f"Successfully deleted model: {clean_repo_id}"
+        return f"Model {clean_repo_id} not found in cache."
     except Exception as e:
-        return f"Error deleting model: {str(e)}", refresh_cached_models()
+        return f"Error deleting model: {str(e)}"
 
 def test_matching_engine(progress=gr.Progress(track_tqdm=True)):
     progress(0, desc="Checking model installation...")
@@ -49,12 +49,12 @@ def test_matching_engine(progress=gr.Progress(track_tqdm=True)):
         # This will download the model if not present, showing progress automatically
         model = SentenceTransformer("all-MiniLM-L6-v2")
         progress(0.8, desc="Running internal verification test...")
-        # Internal test to ensure the mathematical tensor graph works (user requested not to see the raw output)
+        # Internal test to ensure the mathematical tensor graph works
         _ = model.encode("hi")
         progress(1.0, desc="Done")
-        return "Model Verification Successful! The model is installed, loaded, and mathematically functional.", refresh_cached_models()
+        return "Model Verification Successful! The model is installed, loaded, and mathematically functional."
     except Exception as e:
-        return f"Verification Failed: {str(e)}", refresh_cached_models()
+        return f"Verification Failed: {str(e)}"
 
 def get_system_stats():
     # RAM Usage
@@ -78,16 +78,16 @@ def get_system_stats():
 
 def install_hf_model(hf_id, progress=gr.Progress(track_tqdm=True)):
     if not hf_id:
-        return "Please provide a Hugging Face Model ID.", refresh_cached_models()
+        return "Please provide a Hugging Face Model ID."
     
     progress(0, desc=f"Starting download for {hf_id}...")
     try:
         from huggingface_hub import snapshot_download
         # This will securely download the model to the cache and display progress
         _ = snapshot_download(repo_id=hf_id)
-        return f"Successfully installed: {hf_id}", refresh_cached_models()
+        return f"Successfully installed: {hf_id}"
     except Exception as e:
-        return f"Failed to install {hf_id}: {str(e)}", refresh_cached_models()
+        return f"Failed to install {hf_id}: {str(e)}"
 
 def login_hf(token):
     if not token:
@@ -100,6 +100,9 @@ def login_hf(token):
         return f"Login failed: {str(e)}"
 
 def create_model_management_tab():
+    with gr.Row():
+        action_out = gr.Textbox(label="Global Action Status", interactive=False)
+        
     with gr.Row():
         with gr.Column():
             gr.Markdown("### Hugging Face Cache Manager")
@@ -130,12 +133,20 @@ def create_model_management_tab():
             stats_out = gr.Markdown(get_system_stats())
             refresh_btn = gr.Button("Refresh Resource Stats")
             
-    with gr.Row():
-        action_out = gr.Textbox(label="Global Action Status", interactive=False)
-        
     refresh_cache_btn.click(fn=refresh_cached_models, outputs=cached_models_dropdown)
-    delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=[action_out, cached_models_dropdown])
-    test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
+    
+    delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=action_out).then(
+        fn=refresh_cached_models, outputs=cached_models_dropdown
+    )
+    
+    test_engine_btn.click(fn=test_matching_engine, outputs=action_out).then(
+        fn=refresh_cached_models, outputs=cached_models_dropdown
+    )
+    
     hf_login_btn.click(fn=login_hf, inputs=hf_token_input, outputs=action_out)
-    install_btn.click(fn=install_hf_model, inputs=new_model_id, outputs=[action_out, cached_models_dropdown])
+    
+    install_btn.click(fn=install_hf_model, inputs=new_model_id, outputs=action_out).then(
+        fn=refresh_cached_models, outputs=cached_models_dropdown
+    )
+    
     refresh_btn.click(fn=get_system_stats, outputs=stats_out)
