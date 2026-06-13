@@ -13,17 +13,17 @@ class DatasetManager:
         # Hardcoded specific dataset mappings for our enterprise categories
         # as HuggingFace search can be noisy
         self.category_map = {
-            "AML / Anti Money Laundering": ["IBM/aml-transaction-monitoring", "samsupremum/aml-dataset"],
-            "Fraud Detection": ["mrm8488/credit_card_fraud", "FinanceInc/fraud_detection"],
-            "Banking Transactions": ["FinanceInc/bank_transactions"],
-            "Customer Profiles": ["ai4privacy/pii-masking-200k"],
-            "KYC": ["financial_kyc_data"],
-            "PII Data": ["ai4privacy/pii-masking-200k"],
-            "Insurance Claims": ["mrm8488/insurance_claims"],
-            "Compliance": ["compliance_data_corpus"],
-            "Vendor Risk": ["vendor_risk_management"],
-            "Adverse Media": ["adverse_media_articles"],
-            "Synthetic Financial Data": ["synth_fin_transactions"]
+            "AML / Anti Money Laundering": ['Annanay/aml_song_lyrics_balanced'],
+            "Fraud Detection": ['jslin09/Fraud_Case_Verdicts', 'anmorgan24/creditcard_fraud_csv'],
+            "Banking Transactions": ['PolyAI/banking77', 'dvilasuero/banking_with_vectors'],
+            "Customer Profiles": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
+            "KYC": ['UniqueData/caucasian-people-kyc-photo-dataset'],
+            "PII Data": ['redmadrobot-rnd/pii_benchmark', 'Meddies/meddies-pii'],
+            "Insurance Claims": ['superjordan/insurance_qa'],
+            "Compliance": ['Akshata/autotrain-data-compliance'],
+            "Vendor Risk": ['Falah/local_market_vendor_prompts'],
+            "Adverse Media": ['rangeva/adverse-media-dataset'],
+            "Synthetic Financial Data": ['gretelai/synthetic_pii_finance_multilingual', 'modeldev/synthetic_pii_finance']
         }
 
     def fetch_datasets_by_category(self, category):
