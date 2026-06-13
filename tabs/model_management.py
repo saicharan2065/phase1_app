@@ -6,10 +6,14 @@ from pathlib import Path
 from huggingface_hub import scan_cache_dir
 
 def get_cached_hf_models():
-    """Scans the local HF cache and returns a list of installed repo IDs."""
+    """Scans the local HF cache and returns a list of installed repo IDs with sizes in GB."""
     try:
         cache = scan_cache_dir()
-        repos = [repo.repo_id for repo in cache.repos]
+        repos = []
+        for repo in cache.repos:
+            size_gb = repo.size_on_disk / (1024**3)
+            repos.append(f"{repo.repo_id} ({size_gb:.2f} GB)")
+            
         if not repos:
             return ["No models installed"]
         return repos
@@ -26,11 +30,15 @@ def delete_cached_model(repo_id):
         
     try:
         cache = scan_cache_dir()
+        
+        # Extract the pure repo_id if it has the " (X.XX GB)" suffix
+        clean_repo_id = repo_id.split(" (")[0] if " (" in repo_id else repo_id
+        
         for repo in cache.repos:
-            if repo.repo_id == repo_id:
+            if repo.repo_id == clean_repo_id:
                 shutil.rmtree(repo.repo_path, ignore_errors=True)
-                return f"Successfully deleted model: {repo_id}", refresh_cached_models()
-        return f"Model {repo_id} not found in cache.", refresh_cached_models()
+                return f"Successfully deleted model: {clean_repo_id}", refresh_cached_models()
+        return f"Model {clean_repo_id} not found in cache.", refresh_cached_models()
     except Exception as e:
         return f"Error deleting model: {str(e)}", refresh_cached_models()
 
@@ -105,18 +113,11 @@ def create_model_management_tab():
             gr.Markdown("Ensures the core `all-MiniLM-L6-v2` matching engine is installed and mathematically stable.")
             test_engine_btn = gr.Button("Verify Matching Engine", variant="primary")
             
-            action_out = gr.Textbox(label="Action Status", interactive=False)
-            
-            refresh_cache_btn.click(fn=refresh_cached_models, outputs=cached_models_dropdown)
-            delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=[action_out, cached_models_dropdown])
-            test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
-            
         with gr.Column():
             gr.Markdown("### Hugging Face Authentication")
             gr.Markdown("Enter your Hugging Face Access Token to download gated or private models.")
             hf_token_input = gr.Textbox(label="Access Token", type="password")
             hf_login_btn = gr.Button("Save Token & Login", variant="secondary")
-            hf_login_btn.click(fn=login_hf, inputs=hf_token_input, outputs=action_out)
             
             gr.Markdown("---")
             
@@ -124,9 +125,17 @@ def create_model_management_tab():
             gr.Markdown("Downloads any model securely from the Hugging Face hub directly to your local system cache.")
             new_model_id = gr.Textbox(label="Hugging Face Model ID (e.g., t5-small)")
             install_btn = gr.Button("Download & Install Model", variant="primary")
-            install_btn.click(fn=install_hf_model, inputs=new_model_id, outputs=[action_out, cached_models_dropdown])
 
             gr.Markdown("### Application State")
             stats_out = gr.Markdown(get_system_stats())
             refresh_btn = gr.Button("Refresh Resource Stats")
-            refresh_btn.click(fn=get_system_stats, outputs=stats_out)
+            
+    with gr.Row():
+        action_out = gr.Textbox(label="Global Action Status", interactive=False)
+        
+    refresh_cache_btn.click(fn=refresh_cached_models, outputs=cached_models_dropdown)
+    delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=[action_out, cached_models_dropdown])
+    test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
+    hf_login_btn.click(fn=login_hf, inputs=hf_token_input, outputs=action_out)
+    install_btn.click(fn=install_hf_model, inputs=new_model_id, outputs=[action_out, cached_models_dropdown])
+    refresh_btn.click(fn=get_system_stats, outputs=stats_out)
