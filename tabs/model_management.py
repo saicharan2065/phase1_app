@@ -68,10 +68,18 @@ def get_system_stats():
 """
     return stats
 
-def install_model(hf_id):
+def install_hf_model(hf_id, progress=gr.Progress(track_tqdm=True)):
     if not hf_id:
-        return "Please provide a Hugging Face Model ID."
-    return f"Mock installation triggered for: {hf_id}. Real installation depends on backend agent use."
+        return "Please provide a Hugging Face Model ID.", refresh_cached_models()
+    
+    progress(0, desc=f"Starting download for {hf_id}...")
+    try:
+        from huggingface_hub import snapshot_download
+        # This will securely download the model to the cache and display progress
+        _ = snapshot_download(repo_id=hf_id)
+        return f"Successfully installed: {hf_id}", refresh_cached_models()
+    except Exception as e:
+        return f"Failed to install {hf_id}: {str(e)}", refresh_cached_models()
 
 def create_model_management_tab():
     with gr.Row():
@@ -94,6 +102,12 @@ def create_model_management_tab():
             test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
             
         with gr.Column():
+            gr.Markdown("### Install Hugging Face Model")
+            gr.Markdown("Downloads any model securely from the Hugging Face hub directly to your local system cache.")
+            new_model_id = gr.Textbox(label="Hugging Face Model ID (e.g., t5-small)")
+            install_btn = gr.Button("Download & Install Model", variant="primary")
+            install_btn.click(fn=install_hf_model, inputs=new_model_id, outputs=[action_out, cached_models_dropdown])
+
             gr.Markdown("### Application State")
             stats_out = gr.Markdown(get_system_stats())
             refresh_btn = gr.Button("Refresh Resource Stats")
