@@ -11,9 +11,9 @@ def generate_mock_alert(ent_id, level):
     ae.generate_alert(ent_id, "Manual Trigger", level, "Manually generated alert from UI")
     return refresh_alerts()
 
-def save_smtp(server, port, email, password, recipient):
+def save_smtp(email, password, recipient):
     ae = AlertEngine()
-    msg = ae.save_smtp_config(server, port, email, password, recipient)
+    msg = ae.save_smtp_config(email, password, recipient)
     return msg
 
 def test_smtp():
@@ -25,8 +25,8 @@ def load_smtp_ui():
     ae = AlertEngine()
     config = ae.load_smtp_config()
     if config:
-        return config.get("server", ""), config.get("port", "587"), config.get("email", ""), config.get("password", ""), config.get("recipient", "")
-    return "", "587", "", "", ""
+        return config.get("email", ""), config.get("password", ""), config.get("recipient", "")
+    return "", "", ""
 
 def create_alerts_tab():
     with gr.Row():
@@ -42,11 +42,9 @@ def create_alerts_tab():
             trigger_btn.click(fn=generate_mock_alert, inputs=[ent_id, level], outputs=alerts_df)
             
         with gr.Column(scale=1):
-            gr.Markdown("### SMTP Mail Configuration")
-            gr.Markdown("Configure your mail server to dispatch system alerts.")
+            gr.Markdown("### Universal Alert Configuration")
+            gr.Markdown("Configure your email account to dispatch system alerts. The system will automatically discover your server.")
             
-            smtp_server = gr.Textbox(label="SMTP Server", placeholder="smtp.gmail.com")
-            smtp_port = gr.Textbox(label="Port", placeholder="587 or 465")
             smtp_email = gr.Textbox(label="Sender Email (e.g., your_email@gmail.com)")
             smtp_pass = gr.Textbox(label="App Password", type="password")
             smtp_target = gr.Textbox(label="Recipient Email (Where to send alerts)")
@@ -60,12 +58,10 @@ def create_alerts_tab():
             # Load initial config on boot
             # In Gradio, we can use a dummy trigger or just initialize the components with default values 
             # by fetching them once during construction.
-            sv, pt, em, pw, tg = load_smtp_ui()
-            smtp_server.value = sv
-            smtp_port.value = pt
+            em, pw, tg = load_smtp_ui()
             smtp_email.value = em
             smtp_pass.value = pw
             smtp_target.value = tg
             
-            save_btn.click(fn=save_smtp, inputs=[smtp_server, smtp_port, smtp_email, smtp_pass, smtp_target], outputs=smtp_status)
+            save_btn.click(fn=save_smtp, inputs=[smtp_email, smtp_pass, smtp_target], outputs=smtp_status)
             test_btn.click(fn=test_smtp, outputs=smtp_status)

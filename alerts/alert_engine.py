@@ -13,7 +13,41 @@ class AlertEngine:
         os.makedirs(self.storage_dir, exist_ok=True)
         os.makedirs("storage", exist_ok=True)
 
-    def save_smtp_config(self, server, port, email, password, recipient):
+    def _discover_smtp_server(self, email):
+        if "@" not in email:
+            return None, "Invalid email address format."
+            
+        domain = email.split("@")[-1].lower()
+        
+        # Hardcoded consumer defaults
+        if domain in ["gmail.com"]:
+            return ("smtp.gmail.com", 587), None
+        elif domain in ["yahoo.com", "ymail.com"]:
+            return ("smtp.mail.yahoo.com", 587), None
+        elif domain in ["outlook.com", "hotmail.com", "live.com", "msn.com"]:
+            return ("smtp.office365.com", 587), None
+            
+        # DNS MX Lookup for Corporate Domains
+        try:
+            import subprocess
+            result = subprocess.run(["nslookup", "-type=MX", domain], capture_output=True, text=True, timeout=5)
+            output = result.stdout.lower()
+            
+            if "google.com" in output or "googlemail.com" in output:
+                return ("smtp.gmail.com", 587), None
+            elif "outlook.com" in output or "protection.outlook.com" in output:
+                return ("smtp.office365.com", 587), None
+            else:
+                return None, f"Could not auto-discover SMTP server for {domain}. Private Exchange server suspected."
+        except Exception as e:
+            return None, f"Auto-Discovery Failed: {str(e)}"
+
+    def save_smtp_config(self, email, password, recipient):
+        server_tuple, err = self._discover_smtp_server(email)
+        if err:
+            return err
+            
+        server, port = server_tuple
         config = {
             "server": server,
             "port": port,
@@ -23,7 +57,7 @@ class AlertEngine:
         }
         with open(self.smtp_config_path, "w") as f:
             json.dump(config, f, indent=4)
-        return "SMTP Configuration Saved Successfully!"
+        return f"Auto-Discovered ({server}). Configuration Saved!"
 
     def load_smtp_config(self):
         if os.path.exists(self.smtp_config_path):
