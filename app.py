@@ -18,13 +18,27 @@ from tabs.case_management import create_case_management_tab
 from tabs.alerts import create_alerts_tab
 from tabs.reports import create_reports_tab
 
+# Dataset Marketplace import
+from tabs.dataset_marketplace import create_dataset_marketplace_tab
+
 def create_app():
-    with gr.Blocks(title="Financial Crime OS (Phase 3)", theme=gr.themes.Soft()) as app:
+    # Enforcing compact enterprise UI
+    compact_theme = gr.themes.Soft(
+        spacing_size="sm", 
+        text_size="sm",
+        radius_size="sm"
+    )
+    
+    with gr.Blocks(title="Financial Crime OS", theme=compact_theme) as app:
         gr.Markdown("# Financial Crime Operating System")
         
         with gr.Tabs():
+            # New Dataset Marketplace
+            with gr.Tab("Dataset Marketplace"):
+                create_dataset_marketplace_tab()
+                
             # Phase 1
-            with gr.Tab("Data Sources"):
+            with gr.Tab("Local Data Sources"):
                 create_data_sources_tab()
                 
             with gr.Tab("Reference Validation"):
@@ -53,7 +67,7 @@ def create_app():
             with gr.Tab("AML Detection"):
                 create_aml_detection_tab()
                 
-            with gr.Tab("Risk Clusters & Fraud Rings"):
+            with gr.Tab("Risk Clusters"):
                 create_risk_clusters_tab()
                 
             with gr.Tab("Investigations"):

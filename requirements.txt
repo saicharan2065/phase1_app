@@ -13,3 +13,5 @@ openpyxl
 joblib
 xgboost
 lightgbm
+datasets
+huggingface_hub
