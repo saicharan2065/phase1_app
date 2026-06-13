@@ -14,7 +14,7 @@ class DatasetManager:
         # as HuggingFace search can be noisy
         self.category_map = {
             "AML / Anti Money Laundering": ['Annanay/aml_song_lyrics_balanced'],
-            "Fraud Detection": ['jslin09/Fraud_Case_Verdicts', 'anmorgan24/creditcard_fraud_csv'],
+            "Fraud Detection": ['anmorgan24/creditcard_fraud_csv'],
             "Banking Transactions": ['PolyAI/banking77', 'dvilasuero/banking_with_vectors'],
             "Customer Profiles": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
             "KYC": ['UniqueData/caucasian-people-kyc-photo-dataset'],
