@@ -89,12 +89,12 @@ def install_hf_model(hf_id, progress=gr.Progress()):
         from pathlib import Path
         
         api = HfApi()
-        info = api.model_info(repo_id=hf_id)
+        info = api.model_info(repo_id=hf_id, files_metadata=True)
         
         files_to_download = [f for f in info.siblings]
         total_bytes = sum((f.size or 0) for f in files_to_download)
         total_gb = total_bytes / (1024**3)
-        if total_bytes == 0: total_bytes = 1
+        if total_bytes <= 0: total_bytes = 1
         
         safe_repo_name = hf_id.replace("/", "--")
         cache_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub", f"models--{safe_repo_name}")
