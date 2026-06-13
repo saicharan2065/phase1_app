@@ -1,0 +1,15 @@
+gradio>=4.0.0
+pandas>=2.0.0
+psutil>=5.9.0
+networkx
+rapidfuzz
+sentence-transformers
+plotly
+pyvis
+numpy
+scikit-learn
+reportlab
+openpyxl
+joblib
+xgboost
+lightgbm
