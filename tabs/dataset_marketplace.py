@@ -61,16 +61,16 @@ def create_dataset_marketplace_tab():
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("#### SOURCE DATASET")
-                s_cat = gr.Dropdown(choices=categories, label="Category", size="sm")
-                s_ds = gr.Dropdown(choices=[], label="Available Datasets", size="sm")
-                s_custom = gr.Textbox(label="Custom Dataset ID", visible=False, size="sm")
+                s_cat = gr.Dropdown(choices=categories, label="Category")
+                s_ds = gr.Dropdown(choices=[], label="Available Datasets")
+                s_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():
-                    s_limit = gr.Dropdown(choices=limits, value="1000", label="Records", size="sm")
+                    s_limit = gr.Dropdown(choices=limits, value="1000", label="Records")
                     s_est = gr.Markdown(update_estimates("1000"))
                 
-                s_load_btn = gr.Button("Load Source", size="sm", variant="primary")
-                s_status = gr.Textbox(label="Status", interactive=False, size="sm")
+                s_load_btn = gr.Button("Load Source", variant="primary")
+                s_status = gr.Textbox(label="Status", interactive=False)
                 s_info = gr.Markdown("")
                 
             s_df_state = gr.State()
@@ -92,16 +92,16 @@ def create_dataset_marketplace_tab():
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("#### REFERENCE DATASET")
-                r_cat = gr.Dropdown(choices=categories, label="Category", size="sm")
-                r_ds = gr.Dropdown(choices=[], label="Available Datasets", size="sm")
-                r_custom = gr.Textbox(label="Custom Dataset ID", visible=False, size="sm")
+                r_cat = gr.Dropdown(choices=categories, label="Category")
+                r_ds = gr.Dropdown(choices=[], label="Available Datasets")
+                r_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():
-                    r_limit = gr.Dropdown(choices=limits, value="1000", label="Records", size="sm")
+                    r_limit = gr.Dropdown(choices=limits, value="1000", label="Records")
                     r_est = gr.Markdown(update_estimates("1000"))
                 
-                r_load_btn = gr.Button("Load Reference", size="sm", variant="primary")
-                r_status = gr.Textbox(label="Status", interactive=False, size="sm")
+                r_load_btn = gr.Button("Load Reference", variant="primary")
+                r_status = gr.Textbox(label="Status", interactive=False)
                 r_info = gr.Markdown("")
                 
             r_df_state = gr.State()
@@ -125,16 +125,16 @@ def create_dataset_marketplace_tab():
             with gr.Group():
                 gr.Markdown("#### COMPARISON ACTIONS")
                 with gr.Row():
-                    compare_btn = gr.Button("Compare", size="sm", variant="primary")
-                    swap_btn = gr.Button("Swap", size="sm")
-                    clear_btn = gr.Button("Clear", size="sm")
+                    compare_btn = gr.Button("Compare", variant="primary")
+                    swap_btn = gr.Button("Swap")
+                    clear_btn = gr.Button("Clear")
                 
-                comp_status = gr.Textbox(label="Comparison Status", interactive=False, size="sm")
+                comp_status = gr.Textbox(label="Comparison Status", interactive=False)
                 
             with gr.Group():
                 gr.Markdown("#### CACHE MANAGEMENT")
                 cache_info = gr.Markdown(refresh_cache_info())
-                clear_cache_btn = gr.Button("Clear Cache", size="sm")
+                clear_cache_btn = gr.Button("Clear Cache")
                 clear_cache_btn.click(clear_cache_ui, outputs=cache_info)
 
         with gr.Column(scale=3):

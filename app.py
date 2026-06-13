@@ -21,15 +21,14 @@ from tabs.reports import create_reports_tab
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
+compact_theme = gr.themes.Soft(
+    spacing_size="sm", 
+    text_size="sm",
+    radius_size="sm"
+)
+
 def create_app():
-    # Enforcing compact enterprise UI
-    compact_theme = gr.themes.Soft(
-        spacing_size="sm", 
-        text_size="sm",
-        radius_size="sm"
-    )
-    
-    with gr.Blocks(title="Financial Crime OS", theme=compact_theme) as app:
+    with gr.Blocks(title="Financial Crime OS") as app:
         gr.Markdown("# Financial Crime Operating System")
         
         with gr.Tabs():
@@ -86,4 +85,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.launch()
+    app.launch(theme=compact_theme)
