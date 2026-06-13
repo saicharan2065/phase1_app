@@ -60,25 +60,6 @@ def run_comparison(source_df, ref_df, progress=gr.Progress(track_tqdm=True)):
     progress(1.0, desc="Done")
     return f"Validation Score: {score}%", mismatches
 
-def check_model_status():
-    model_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub", "models--sentence-transformers--all-MiniLM-L6-v2")
-    if os.path.exists(model_dir):
-        total_size = sum(f.stat().st_size for f in Path(model_dir).glob('**/*') if f.is_file())
-        size_mb = total_size / (1024 * 1024)
-        return f"Installed ({size_mb:.2f} MB)"
-    return "Not Installed (Will download on first comparison)"
-
-def install_matching_model(progress=gr.Progress(track_tqdm=True)):
-    progress(0, desc="Starting model download...")
-    from sentence_transformers import SentenceTransformer
-    _ = SentenceTransformer("all-MiniLM-L6-v2")
-    return check_model_status()
-
-def uninstall_matching_model():
-    model_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub", "models--sentence-transformers--all-MiniLM-L6-v2")
-    if os.path.exists(model_dir):
-        shutil.rmtree(model_dir, ignore_errors=True)
-    return check_model_status()
 
 def create_dataset_marketplace_tab():
     categories = list(dm.category_map.keys()) + ["Custom Hugging Face Dataset"]
@@ -165,15 +146,6 @@ def create_dataset_marketplace_tab():
                 clear_cache_btn = gr.Button("Clear Cache")
                 clear_cache_btn.click(clear_cache_ui, outputs=cache_info)
                 
-            with gr.Group():
-                gr.Markdown("#### MATCHING ENGINE MODEL")
-                model_status_txt = gr.Textbox(label="all-MiniLM-L6-v2", value=check_model_status(), interactive=False)
-                with gr.Row():
-                    install_model_btn = gr.Button("Install Now", variant="primary")
-                    uninstall_model_btn = gr.Button("Uninstall", variant="stop")
-                    
-                install_model_btn.click(install_matching_model, outputs=model_status_txt)
-                uninstall_model_btn.click(uninstall_matching_model, outputs=model_status_txt)
 
         with gr.Column(scale=3):
             gr.Markdown("#### DATA PREVIEWS")

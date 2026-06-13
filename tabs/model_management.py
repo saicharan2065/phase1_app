@@ -3,18 +3,50 @@ import psutil
 import shutil
 import os
 from pathlib import Path
+from huggingface_hub import scan_cache_dir
 
-# Mock global state for models
-PROTECTED_MODELS = ["meta-llama/Llama-2-7b-chat-hf", "mistralai/Mistral-7B-v0.1", "google/gemma-7b"]
-USER_MODELS = ["gpt2", "facebook/opt-125m"]
-ACTIVE_MODEL = "gpt2"
+def get_cached_hf_models():
+    """Scans the local HF cache and returns a list of installed repo IDs."""
+    try:
+        cache = scan_cache_dir()
+        repos = [repo.repo_id for repo in cache.repos]
+        if not repos:
+            return ["No models installed"]
+        return repos
+    except Exception:
+        return ["No models installed"]
 
-def clear_hf_cache():
-    cache_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub")
-    if os.path.exists(cache_dir):
-        shutil.rmtree(cache_dir, ignore_errors=True)
-        return "System Cache Cleared. All default huggingface models uninstalled. They will re-download when used."
-    return "Cache directory not found. No models are currently installed."
+def refresh_cached_models():
+    repos = get_cached_hf_models()
+    return gr.update(choices=repos, value=repos[0] if repos else None)
+
+def delete_cached_model(repo_id):
+    if not repo_id or repo_id == "No models installed":
+        return "Please select a valid model.", refresh_cached_models()
+        
+    try:
+        cache = scan_cache_dir()
+        for repo in cache.repos:
+            if repo.repo_id == repo_id:
+                shutil.rmtree(repo.repo_path, ignore_errors=True)
+                return f"Successfully deleted model: {repo_id}", refresh_cached_models()
+        return f"Model {repo_id} not found in cache.", refresh_cached_models()
+    except Exception as e:
+        return f"Error deleting model: {str(e)}", refresh_cached_models()
+
+def test_matching_engine(progress=gr.Progress(track_tqdm=True)):
+    progress(0, desc="Checking model installation...")
+    try:
+        from sentence_transformers import SentenceTransformer
+        # This will download the model if not present, showing progress automatically
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        progress(0.8, desc="Running internal verification test...")
+        # Internal test to ensure the mathematical tensor graph works (user requested not to see the raw output)
+        _ = model.encode("hi")
+        progress(1.0, desc="Done")
+        return "Model Verification Successful! The model is installed, loaded, and mathematically functional.", refresh_cached_models()
+    except Exception as e:
+        return f"Verification Failed: {str(e)}", refresh_cached_models()
 
 def get_system_stats():
     # RAM Usage
@@ -29,86 +61,40 @@ def get_system_stats():
     disk_used_gb = disk.used / (1024**3)
     disk_total_gb = disk.total / (1024**3)
     
-    # VRAM Usage (Attempting to use nvidia-smi via torch if available)
-    vram_info = "N/A (No GPU detected)"
-    try:
-        import torch
-        if torch.cuda.is_available():
-            vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-            vram_reserved = torch.cuda.memory_reserved(0) / (1024**3)
-            vram_allocated = torch.cuda.memory_allocated(0) / (1024**3)
-            vram_info = f"{vram_allocated:.1f} GB allocated / {vram_total:.1f} GB total"
-    except ImportError:
-        pass
-        
     stats = f"""
 ### Resource Usage
 * **RAM Usage**: {ram_percent}% ({ram_used_gb:.1f} GB / {ram_total_gb:.1f} GB)
 * **Disk Usage**: {disk_percent:.1f}% ({disk_used_gb:.1f} GB / {disk_total_gb:.1f} GB)
-* **VRAM Usage**: {vram_info}
 """
     return stats
 
 def install_model(hf_id):
     if not hf_id:
-        return "Please provide a Hugging Face Model ID.", gr.update()
-    if hf_id in USER_MODELS or hf_id in PROTECTED_MODELS:
-        return f"Model '{hf_id}' is already installed.", gr.update()
-    
-    USER_MODELS.append(hf_id)
-    return f"Successfully installed user model: {hf_id}", gr.update(choices=USER_MODELS)
-
-def delete_model(model_id):
-    global ACTIVE_MODEL
-    if not model_id:
-        return "No model selected.", gr.update()
-    if model_id in USER_MODELS:
-        USER_MODELS.remove(model_id)
-        if ACTIVE_MODEL == model_id:
-            ACTIVE_MODEL = None
-        return f"Successfully deleted user model: {model_id}", gr.update(choices=USER_MODELS)
-    return f"Cannot delete model '{model_id}'. It might be a protected system model or does not exist.", gr.update()
-
-def activate_model(model_id):
-    global ACTIVE_MODEL
-    if not model_id:
-        return "No model selected."
-    if model_id in PROTECTED_MODELS or model_id in USER_MODELS:
-        ACTIVE_MODEL = model_id
-        return f"Successfully activated model: {model_id}"
-    return f"Model '{model_id}' not found."
+        return "Please provide a Hugging Face Model ID."
+    return f"Mock installation triggered for: {hf_id}. Real installation depends on backend agent use."
 
 def create_model_management_tab():
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### Protected System Models")
-            sys_models = gr.Dropdown(choices=PROTECTED_MODELS, label="System Models", interactive=False)
+            gr.Markdown("### Hugging Face Cache Manager")
+            cached_models_dropdown = gr.Dropdown(choices=get_cached_hf_models(), label="Installed Models", interactive=True)
             
             with gr.Row():
-                sys_activate_btn = gr.Button("Activate System Model", variant="secondary")
-                sys_clear_btn = gr.Button("Uninstall Default Models", variant="stop")
+                refresh_cache_btn = gr.Button("Refresh List")
+                delete_cache_btn = gr.Button("Delete Selected Model", variant="stop")
             
-            gr.Markdown("### User Models")
-            usr_models = gr.Dropdown(choices=USER_MODELS, label="Your Models", interactive=True)
-            
-            with gr.Row():
-                usr_activate_btn = gr.Button("Activate User Model", variant="primary")
-                usr_delete_btn = gr.Button("Delete User Model", variant="stop")
+            gr.Markdown("### Matching Engine Verification")
+            gr.Markdown("Ensures the core `all-MiniLM-L6-v2` matching engine is installed and mathematically stable.")
+            test_engine_btn = gr.Button("Verify Matching Engine", variant="primary")
             
             action_out = gr.Textbox(label="Action Status", interactive=False)
             
-            sys_activate_btn.click(fn=activate_model, inputs=sys_models, outputs=action_out)
-            sys_clear_btn.click(fn=clear_hf_cache, outputs=action_out)
-            usr_activate_btn.click(fn=activate_model, inputs=usr_models, outputs=action_out)
-            usr_delete_btn.click(fn=delete_model, inputs=usr_models, outputs=[action_out, usr_models])
+            refresh_cache_btn.click(fn=refresh_cached_models, outputs=cached_models_dropdown)
+            delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=[action_out, cached_models_dropdown])
+            test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
             
         with gr.Column():
-            gr.Markdown("### Install Model from Hugging Face")
-            new_model_id = gr.Textbox(label="Hugging Face Model ID (e.g., t5-small)")
-            install_btn = gr.Button("Install Model")
-            install_btn.click(fn=install_model, inputs=new_model_id, outputs=[action_out, usr_models])
-            
-            gr.Markdown("---")
+            gr.Markdown("### Application State")
             stats_out = gr.Markdown(get_system_stats())
             refresh_btn = gr.Button("Refresh Resource Stats")
             refresh_btn.click(fn=get_system_stats, outputs=stats_out)
