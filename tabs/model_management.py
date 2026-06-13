@@ -1,11 +1,20 @@
 import gradio as gr
 import psutil
 import shutil
+import os
+from pathlib import Path
 
 # Mock global state for models
 PROTECTED_MODELS = ["meta-llama/Llama-2-7b-chat-hf", "mistralai/Mistral-7B-v0.1", "google/gemma-7b"]
 USER_MODELS = ["gpt2", "facebook/opt-125m"]
 ACTIVE_MODEL = "gpt2"
+
+def clear_hf_cache():
+    cache_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub")
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir, ignore_errors=True)
+        return "System Cache Cleared. All default huggingface models uninstalled. They will re-download when used."
+    return "Cache directory not found. No models are currently installed."
 
 def get_system_stats():
     # RAM Usage
@@ -74,7 +83,10 @@ def create_model_management_tab():
         with gr.Column():
             gr.Markdown("### Protected System Models")
             sys_models = gr.Dropdown(choices=PROTECTED_MODELS, label="System Models", interactive=False)
-            sys_activate_btn = gr.Button("Activate System Model", variant="secondary")
+            
+            with gr.Row():
+                sys_activate_btn = gr.Button("Activate System Model", variant="secondary")
+                sys_clear_btn = gr.Button("Uninstall Default Models", variant="stop")
             
             gr.Markdown("### User Models")
             usr_models = gr.Dropdown(choices=USER_MODELS, label="Your Models", interactive=True)
@@ -86,6 +98,7 @@ def create_model_management_tab():
             action_out = gr.Textbox(label="Action Status", interactive=False)
             
             sys_activate_btn.click(fn=activate_model, inputs=sys_models, outputs=action_out)
+            sys_clear_btn.click(fn=clear_hf_cache, outputs=action_out)
             usr_activate_btn.click(fn=activate_model, inputs=usr_models, outputs=action_out)
             usr_delete_btn.click(fn=delete_model, inputs=usr_models, outputs=[action_out, usr_models])
             

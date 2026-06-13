@@ -21,13 +21,22 @@ from tabs.reports import create_reports_tab
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
-compact_theme = gr.themes.Soft(
+compact_theme = gr.themes.Default(
     primary_hue="emerald",
     secondary_hue="green",
     neutral_hue="slate",
     spacing_size="sm", 
     text_size="sm",
     radius_size="sm"
+).set(
+    body_background_fill="white",
+    body_background_fill_dark="white",
+    block_background_fill="white",
+    block_background_fill_dark="white",
+    button_primary_background_fill="*primary_500",
+    button_primary_background_fill_dark="*primary_600",
+    button_primary_text_color="white",
+    button_primary_text_color_dark="white"
 )
 
 def create_app():

@@ -44,12 +44,17 @@ def clear_cache_ui():
     msg = dm.clear_cache()
     return refresh_cache_info()
 
-def run_comparison(source_df, ref_df):
+def run_comparison(source_df, ref_df, progress=gr.Progress(track_tqdm=True)):
     if source_df is None or source_df.empty or ref_df is None or ref_df.empty:
         return "Load Source and Reference datasets first.", pd.DataFrame()
         
+    progress(0, desc="Initializing Matching Engine (May download model)...")
     engine = ReferenceDataMatchingEngine()
+    
+    progress(0.5, desc="Computing Matrix Similarity...")
     score, mismatches = engine.match_records(source_df, ref_df)
+    
+    progress(1.0, desc="Done")
     return f"Validation Score: {score}%", mismatches
 
 def create_dataset_marketplace_tab():
