@@ -58,8 +58,16 @@ def run_comparison(source_df, ref_df, progress=gr.Progress(track_tqdm=True)):
     score, mismatches = engine.match_records(source_df, ref_df)
     
     progress(1.0, desc="Done")
-    return f"Validation Score: {score}%", mismatches
+    return f"Validation Score: {score}%", safe_preview(mismatches)
 
+def safe_preview(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    # Limit rows to 15, cols to 15, and truncate extremely long strings to prevent browser hanging
+    preview_df = df.head(15).iloc[:, :15].copy()
+    for col in preview_df.select_dtypes(include=['object']):
+        preview_df[col] = preview_df[col].astype(str).str.slice(0, 300)
+    return preview_df
 
 def create_dataset_marketplace_tab():
     categories = list(dm.category_map.keys()) + ["Custom Hugging Face Dataset"]
@@ -159,11 +167,11 @@ def create_dataset_marketplace_tab():
                     
             # Wire previews
             s_load_btn.click(
-                lambda df: df.head(100) if df is not None and not df.empty else pd.DataFrame(),
+                safe_preview,
                 inputs=s_df_state, outputs=s_preview_table
             )
             r_load_btn.click(
-                lambda df: df.head(100) if df is not None and not df.empty else pd.DataFrame(),
+                safe_preview,
                 inputs=r_df_state, outputs=r_preview_table
             )
             
@@ -182,10 +190,10 @@ def create_dataset_marketplace_tab():
                 inputs=[s_df_state, r_df_state],
                 outputs=[s_df_state, r_df_state]
             ).then(
-                lambda df: df.head(100) if df is not None and not df.empty else pd.DataFrame(),
+                safe_preview,
                 inputs=s_df_state, outputs=s_preview_table
             ).then(
-                lambda df: df.head(100) if df is not None and not df.empty else pd.DataFrame(),
+                safe_preview,
                 inputs=r_df_state, outputs=r_preview_table
             )
             
