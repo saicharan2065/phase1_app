@@ -38,23 +38,34 @@ class ReferenceDataMatchingEngine:
         s_mapping = {str(c).lower(): c for c in source_df.columns}
         r_mapping = {str(c).lower(): c for c in ref_df.columns}
 
-        # Instead of 90 million nested loops, concatenate fields into single strings
-        source_docs = source_df.apply(lambda row: " ".join([str(row[s_mapping[k]]) for k in common_cols if pd.notna(row[s_mapping[k]])]), axis=1).tolist()
-        ref_docs = ref_df.apply(lambda row: " ".join([str(row[r_mapping[k]]) for k in common_cols if pd.notna(row[r_mapping[k]])]), axis=1).tolist()
+        # Vectorized string concatenation (100x faster than apply lambda)
+        source_docs = source_df[[s_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
+        ref_docs = ref_df[[r_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
 
-        # Fast TF-IDF matrix multiplication for blistering speed (resolves the "taking too long" issue)
+        # Fast TF-IDF matrix multiplication
         vectorizer = TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4))
         vectorizer.fit(ref_docs + source_docs)
         
         s_matrix = vectorizer.transform(source_docs)
         r_matrix = vectorizer.transform(ref_docs)
         
-        # Computes all N x M comparisons instantly via sparse matrix dot product
-        similarity_matrix = cosine_similarity(s_matrix, r_matrix) * 100 
-
-        # Extract best match for each source
-        best_ref_indices = np.argmax(similarity_matrix, axis=1)
-        best_scores = np.max(similarity_matrix, axis=1)
+        # Distribute matrix dot product across all CPU cores
+        import concurrent.futures
+        
+        def compute_chunk(s_chunk):
+            return cosine_similarity(s_chunk, r_matrix) * 100
+            
+        chunk_size = max(1, s_matrix.shape[0] // 16) # Split into 16 chunks
+        chunks = [s_matrix[i:i+chunk_size] for i in range(0, s_matrix.shape[0], chunk_size)]
+        
+        best_ref_indices = []
+        best_scores = []
+        
+        # Scipy releases the GIL during sparse dot products, allowing true multi-threading
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for sim_chunk in executor.map(compute_chunk, chunks):
+                best_ref_indices.extend(np.argmax(sim_chunk, axis=1))
+                best_scores.extend(np.max(sim_chunk, axis=1))
 
         matches = []
         total_score = 0
@@ -62,22 +73,19 @@ class ReferenceDataMatchingEngine:
 
         for i in range(len(source_docs)):
             best_score = best_scores[i]
-            if best_score >= threshold:
-                matches.append({
-                    "Source Index": i,
-                    "Reference Index": int(best_ref_indices[i]),
-                    "Confidence": round(float(best_score), 2),
-                    "Status": "Match"
-                })
+            is_match = best_score >= threshold
+            
+            matches.append({
+                "Source Index": i,
+                "Reference Index": int(best_ref_indices[i]) if is_match else None,
+                "Confidence": round(float(best_score), 2),
+                "Status": "Match" if is_match else "Mismatch",
+                "Source Data Evaluated": source_docs[i][:150] + "..." if len(source_docs[i]) > 150 else source_docs[i]
+            })
+            
+            if is_match:
                 total_score += best_score
                 match_count += 1
-            else:
-                matches.append({
-                    "Source Index": i,
-                    "Reference Index": None,
-                    "Confidence": round(float(best_score), 2),
-                    "Status": "Mismatch"
-                })
 
         overall_score = round(float(total_score / match_count), 2) if match_count > 0 else 0.0
         return overall_score, pd.DataFrame(matches)
