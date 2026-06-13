@@ -34,7 +34,8 @@ def create_entity_resolution_tab():
             gr.Markdown("### Upload Dataset")
             ds_upload = gr.File(label="Dataset")
             dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_btn.click(fn=lambda: generate_dummy_data('entity_resolution'), outputs=ds_upload)
+            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
+            dummy_btn.click(fn=lambda n: generate_dummy_data("entity_resolution", int(n)), inputs=dummy_count, outputs=ds_upload)
             resolve_btn = gr.Button("Run Entity Resolution", variant="primary")
             
         with gr.Column():

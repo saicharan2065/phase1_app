@@ -46,4 +46,7 @@ class AMLDetectionEngine:
                         "Reasons": "; ".join(reasons)
                     })
                     
-        return pd.DataFrame(results).sort_values("AML Score", ascending=False)
+        df_results = pd.DataFrame(results)
+        if df_results.empty:
+            return pd.DataFrame([{"Message": "No AML risk patterns detected."}])
+        return df_results.sort_values("AML Score", ascending=False)

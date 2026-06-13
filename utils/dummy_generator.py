@@ -4,15 +4,18 @@ import pandas as pd
 import random
 from datetime import datetime, timedelta
 
-def generate_dummy_data(domain="generic"):
+def generate_dummy_data(domain="generic", num_records=15):
     """
     Generates a dummy Pandas DataFrame based on the specified domain context.
     Saves it to a temporary CSV file and returns the file path.
     """
     records = []
     
+    # Ensure minimum
+    num_records = max(1, int(num_records))
+    
     if domain == "fraud":
-        for i in range(15):
+        for i in range(num_records):
             records.append({
                 "transaction_id": f"TXN-{random.randint(10000, 99999)}",
                 "account_id": f"ACC-{random.randint(100, 999)}",
@@ -23,17 +26,36 @@ def generate_dummy_data(domain="generic"):
             })
             
     elif domain == "aml":
-        for i in range(15):
-            records.append({
-                "alert_id": f"AML-{random.randint(1000, 9999)}",
-                "entity_name": random.choice(["John Doe", "Jane Smith", "Global Ventures Ltd", "Oceanic Imports", "Unknown"]),
-                "risk_score": round(random.uniform(0, 100), 1),
-                "country": random.choice(["US", "UK", "KY", "PA", "CH", "RU"]),
-                "transaction_volume_30d": round(random.uniform(5000, 2000000), 2)
-            })
+        # Generate some structuring and velocity patterns
+        groups = max(1, num_records // 11)
+        for i in range(groups):
+            acct = f"ACC-{random.randint(100, 105)}"
+            # Normal txns
+            records.append({"account_id": acct, "amount": random.uniform(100, 5000), "type": "WIRE"})
+            # Structuring (multiple just below 10k)
+            records.append({"account_id": acct, "amount": random.uniform(9000, 9999), "type": "CASH"})
+            records.append({"account_id": acct, "amount": random.uniform(9000, 9999), "type": "CASH"})
+            # Velocity
+            for _ in range(8):
+                records.append({"account_id": acct, "amount": random.uniform(100, 500), "type": "P2P"})
+                
+    elif domain == "fraud_rings":
+        # Generate shared PII to trigger connected graph components
+        rings = max(1, num_records // 3)
+        for i in range(rings):
+            shared_phone = f"555-RING-{i}"
+            shared_address = f"123 Fraud St Apt {i}"
+            for j in range(3): # 3 customers sharing same info
+                records.append({
+                    "customer_id": f"CUST_{i}_{j}",
+                    "name": f"Fake User {i}-{j}",
+                    "phone": shared_phone,
+                    "address": shared_address,
+                    "device": f"DEVICE_MAC_{i}"
+                })
             
     elif domain in ["entity_resolution", "entity_graph", "case_management"]:
-        for i in range(15):
+        for i in range(num_records):
             records.append({
                 "entity_id": f"E-{random.randint(100, 999)}",
                 "name": random.choice(["John Doe", "J. Doe", "Jonathan Doe", "Acme Corp", "Acme Corporation"]),
@@ -43,7 +65,7 @@ def generate_dummy_data(domain="generic"):
             })
             
     elif domain in ["schema_discovery", "data_quality"]:
-        for i in range(15):
+        for i in range(num_records):
             records.append({
                 "id": i,
                 "first_name": random.choice(["Alice", "Bob", None, "Charlie"]),
@@ -54,7 +76,7 @@ def generate_dummy_data(domain="generic"):
             
     else:
         # Default generic data
-        for i in range(10):
+        for i in range(num_records):
             records.append({
                 "id": i,
                 "value": random.random(),

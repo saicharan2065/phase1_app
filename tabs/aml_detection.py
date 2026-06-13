@@ -26,7 +26,8 @@ def create_aml_detection_tab():
             gr.Markdown("### AML Detection Engine")
             ds_upload = gr.File(label="Dataset")
             dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_btn.click(fn=lambda: generate_dummy_data('aml'), outputs=ds_upload)
+            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
+            dummy_btn.click(fn=lambda n: generate_dummy_data("aml", int(n)), inputs=dummy_count, outputs=ds_upload)
             run_btn = gr.Button("Run Detection", variant="primary")
             
         with gr.Column():

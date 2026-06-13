@@ -30,7 +30,8 @@ def create_data_quality_tab():
             gr.Markdown("### Upload Dataset")
             ds_upload = gr.File(label="Dataset")
             dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_btn.click(fn=lambda: generate_dummy_data('data_quality'), outputs=ds_upload)
+            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
+            dummy_btn.click(fn=lambda n: generate_dummy_data("data_quality", int(n)), inputs=dummy_count, outputs=ds_upload)
             analyze_btn = gr.Button("Analyze Data Quality", variant="primary")
             
         with gr.Column():

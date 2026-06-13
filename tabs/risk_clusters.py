@@ -30,7 +30,8 @@ def create_risk_clusters_tab():
             gr.Markdown("### Fraud Ring Detector")
             ds_upload = gr.File(label="Dataset")
             dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_btn.click(fn=lambda: generate_dummy_data('generic'), outputs=ds_upload)
+            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
+            dummy_btn.click(fn=lambda n: generate_dummy_data("fraud_rings", int(n)), inputs=dummy_count, outputs=ds_upload)
             run_btn = gr.Button("Detect Rings", variant="primary")
             status_out = gr.Textbox(label="Status", interactive=False)
             
