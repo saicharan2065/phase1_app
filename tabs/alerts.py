@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 from alerts.alert_engine import AlertEngine
 

@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 from agents.entity_resolution_agent import EntityResolutionAgent
@@ -32,6 +33,8 @@ def create_entity_resolution_tab():
         with gr.Column():
             gr.Markdown("### Upload Dataset")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('entity_resolution'), outputs=ds_upload)
             resolve_btn = gr.Button("Run Entity Resolution", variant="primary")
             
         with gr.Column():

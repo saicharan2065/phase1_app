@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 from validation.data_quality import DataQualityAnalyzer
@@ -28,6 +29,8 @@ def create_data_quality_tab():
         with gr.Column():
             gr.Markdown("### Upload Dataset")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('data_quality'), outputs=ds_upload)
             analyze_btn = gr.Button("Analyze Data Quality", variant="primary")
             
         with gr.Column():

@@ -1,4 +1,6 @@
 import gradio as gr
+import psutil
+import shutil
 from tabs.data_sources import create_data_sources_tab
 from tabs.reference_validation import create_reference_validation_tab
 from tabs.model_management import create_model_management_tab
@@ -69,9 +71,34 @@ compact_theme = gr.themes.Default(
     button_secondary_text_color_dark="black"
 )
 
+def get_compact_metrics():
+    try:
+        from tabs.model_management import get_cached_hf_models
+        models = get_cached_hf_models()
+        active_model = "Pending Agent Configuration"
+        if models and models[0] != "No models installed":
+            active_model = models[0].split(" (")[0]
+    except Exception:
+        active_model = "Pending Agent Configuration"
+        
+    ram = psutil.virtual_memory()
+    disk = shutil.disk_usage("/")
+    
+    return f"""<div style="text-align: right; padding-top: 10px;">
+    <b>Active Model:</b> {active_model}<br>
+    <b>RAM Usage:</b> {ram.percent}% | <b>Disk Usage:</b> {(disk.used / disk.total) * 100:.1f}%
+    </div>"""
+
 def create_app():
     with gr.Blocks(title="Financial Crime OS") as app:
-        gr.Markdown("# Financial Crime Operating System")
+        with gr.Row():
+            with gr.Column(scale=3):
+                gr.Markdown("# Financial Crime Operating System")
+            with gr.Column(scale=1):
+                global_metrics = gr.HTML(get_compact_metrics())
+                refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
+                refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
+                app.load(fn=get_compact_metrics, outputs=global_metrics)
         
         with gr.Tabs():
             # New Dataset Marketplace

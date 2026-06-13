@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 from agents.fraud_ring_detector import FraudRingDetector
@@ -28,6 +29,8 @@ def create_risk_clusters_tab():
         with gr.Column():
             gr.Markdown("### Fraud Ring Detector")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('generic'), outputs=ds_upload)
             run_btn = gr.Button("Detect Rings", variant="primary")
             status_out = gr.Textbox(label="Status", interactive=False)
             

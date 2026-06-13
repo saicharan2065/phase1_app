@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 from cases.case_manager import CaseManager
 import pandas as pd

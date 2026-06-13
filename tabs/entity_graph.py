@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 from graphs.graph_builder import EntityGraphEngine
@@ -44,6 +45,8 @@ def create_entity_graph_tab():
         with gr.Column(scale=1):
             gr.Markdown("### Upload Dataset to Build Graph")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('entity_graph'), outputs=ds_upload)
             build_btn = gr.Button("Generate Entity Graph", variant="primary")
             status_out = gr.Textbox(label="Status", interactive=False)
             stats_out = gr.Code(label="Graph Statistics", language="json")

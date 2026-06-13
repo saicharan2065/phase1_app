@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 from models.fraud_detection import FraudDetectionEngine
@@ -24,6 +25,8 @@ def create_fraud_detection_tab():
         with gr.Column():
             gr.Markdown("### Fraud Detection Engine")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('fraud'), outputs=ds_upload)
             run_btn = gr.Button("Run Detection", variant="primary")
             
         with gr.Column():

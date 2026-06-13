@@ -1,3 +1,4 @@
+from utils.dummy_generator import generate_dummy_data
 import gradio as gr
 import pandas as pd
 import json
@@ -29,6 +30,8 @@ def create_schema_discovery_tab():
         with gr.Column():
             gr.Markdown("### Upload Dataset (CSV/JSON/XLSX)")
             ds_upload = gr.File(label="Dataset")
+            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
+            dummy_btn.click(fn=lambda: generate_dummy_data('schema_discovery'), outputs=ds_upload)
             discover_btn = gr.Button("Discover Schema", variant="primary")
             
         with gr.Column():
