@@ -81,6 +81,16 @@ def install_hf_model(hf_id, progress=gr.Progress(track_tqdm=True)):
     except Exception as e:
         return f"Failed to install {hf_id}: {str(e)}", refresh_cached_models()
 
+def login_hf(token):
+    if not token:
+        return "Please provide a token."
+    try:
+        from huggingface_hub import login
+        login(token=token)
+        return "Successfully logged into Hugging Face Hub! You can now download gated models."
+    except Exception as e:
+        return f"Login failed: {str(e)}"
+
 def create_model_management_tab():
     with gr.Row():
         with gr.Column():
@@ -102,6 +112,14 @@ def create_model_management_tab():
             test_engine_btn.click(fn=test_matching_engine, outputs=[action_out, cached_models_dropdown])
             
         with gr.Column():
+            gr.Markdown("### Hugging Face Authentication")
+            gr.Markdown("Enter your Hugging Face Access Token to download gated or private models.")
+            hf_token_input = gr.Textbox(label="Access Token", type="password")
+            hf_login_btn = gr.Button("Save Token & Login", variant="secondary")
+            hf_login_btn.click(fn=login_hf, inputs=hf_token_input, outputs=action_out)
+            
+            gr.Markdown("---")
+            
             gr.Markdown("### Install Hugging Face Model")
             gr.Markdown("Downloads any model securely from the Hugging Face hub directly to your local system cache.")
             new_model_id = gr.Textbox(label="Hugging Face Model ID (e.g., t5-small)")
