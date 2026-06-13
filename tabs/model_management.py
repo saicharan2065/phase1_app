@@ -5,6 +5,19 @@ import os
 from pathlib import Path
 from huggingface_hub import scan_cache_dir
 
+GLOBAL_ACTIVE_MODEL = "None Selected"
+
+def get_active_model_state():
+    return GLOBAL_ACTIVE_MODEL
+
+def set_active_model(repo_id):
+    global GLOBAL_ACTIVE_MODEL
+    if not repo_id or repo_id == "No models installed":
+        return "Please select a valid model."
+    clean_repo_id = repo_id.split(" (")[0] if " (" in repo_id else repo_id
+    GLOBAL_ACTIVE_MODEL = clean_repo_id
+    return f"Successfully set active model to: {clean_repo_id}"
+
 def get_cached_hf_models():
     """Scans the local HF cache and returns a list of installed repo IDs with sizes in GB."""
     try:
@@ -172,7 +185,8 @@ def create_model_management_tab():
             
             with gr.Row():
                 refresh_cache_btn = gr.Button("Refresh List")
-                delete_cache_btn = gr.Button("Delete Selected Model", variant="stop")
+                set_active_btn = gr.Button("Set as Active", variant="primary")
+                delete_cache_btn = gr.Button("Delete Selected", variant="stop")
             
             gr.Markdown("### Matching Engine Verification")
             gr.Markdown("Ensures the core `all-MiniLM-L6-v2` matching engine is installed and mathematically stable.")
@@ -196,6 +210,8 @@ def create_model_management_tab():
             refresh_btn = gr.Button("Refresh Resource Stats")
             
     refresh_cache_btn.click(fn=refresh_cached_models, outputs=cached_models_dropdown)
+    
+    set_active_btn.click(fn=set_active_model, inputs=cached_models_dropdown, outputs=action_out)
     
     delete_cache_btn.click(fn=delete_cached_model, inputs=cached_models_dropdown, outputs=action_out).then(
         fn=refresh_cached_models, outputs=cached_models_dropdown

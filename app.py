@@ -73,20 +73,22 @@ compact_theme = gr.themes.Default(
 
 def get_compact_metrics():
     try:
-        from tabs.model_management import get_cached_hf_models
-        models = get_cached_hf_models()
-        active_model = "Pending Agent Configuration"
-        if models and models[0] != "No models installed":
-            active_model = models[0].split(" (")[0]
+        from tabs.model_management import get_active_model_state
+        active_model = get_active_model_state()
     except Exception:
-        active_model = "Pending Agent Configuration"
+        active_model = "None Selected"
         
     ram = psutil.virtual_memory()
+    ram_gb_used = ram.used / (1024**3)
+    ram_gb_total = ram.total / (1024**3)
+    
     disk = shutil.disk_usage("/")
+    disk_gb_used = disk.used / (1024**3)
+    disk_gb_total = disk.total / (1024**3)
     
     return f"""<div style="text-align: right; padding-top: 10px;">
     <b>Active Model:</b> {active_model}<br>
-    <b>RAM Usage:</b> {ram.percent}% | <b>Disk Usage:</b> {(disk.used / disk.total) * 100:.1f}%
+    <b>RAM Usage:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk Usage:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB ({(disk.used / disk.total) * 100:.1f}%)
     </div>"""
 
 def create_app():
@@ -98,7 +100,7 @@ def create_app():
                 global_metrics = gr.HTML(get_compact_metrics())
                 refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
                 refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
-                app.load(fn=get_compact_metrics, outputs=global_metrics)
+                app.load(fn=get_compact_metrics, outputs=global_metrics, every=2)
         
         with gr.Tabs():
             # New Dataset Marketplace
