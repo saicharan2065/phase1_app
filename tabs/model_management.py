@@ -76,15 +76,37 @@ def get_system_stats():
 """
     return stats
 
-def install_hf_model(hf_id, progress=gr.Progress(track_tqdm=True)):
+def install_hf_model(hf_id, progress=gr.Progress()):
     if not hf_id:
         return "Please provide a Hugging Face Model ID."
     
-    progress(0, desc=f"Starting download for {hf_id}...")
+    progress(0, desc=f"Fetching metadata for {hf_id}...")
     try:
-        from huggingface_hub import snapshot_download
-        # This will securely download the model to the cache and display progress
-        _ = snapshot_download(repo_id=hf_id)
+        from huggingface_hub import HfApi, hf_hub_download
+        api = HfApi()
+        
+        info = api.model_info(repo_id=hf_id)
+        files_to_download = [f for f in info.siblings]
+        total_bytes = sum((f.size or 0) for f in files_to_download)
+        total_gb = total_bytes / (1024**3)
+        
+        downloaded_bytes = 0
+        
+        for f in files_to_download:
+            filename = f.rfilename
+            file_size = f.size or 0
+            file_size_gb = file_size / (1024**3)
+            
+            # Update progress before downloading file
+            current_gb = downloaded_bytes / (1024**3)
+            progress(downloaded_bytes / max(total_bytes, 1), desc=f"Downloading {filename} ({file_size_gb:.2f} GB) ... Overall: {current_gb:.2f} / {total_gb:.2f} GB")
+            
+            # This triggers the actual download and caches it perfectly
+            hf_hub_download(repo_id=hf_id, filename=filename)
+            
+            downloaded_bytes += file_size
+            
+        progress(1.0, desc=f"Download Complete: {total_gb:.2f} / {total_gb:.2f} GB")
         return f"Successfully installed: {hf_id}"
     except Exception as e:
         return f"Failed to install {hf_id}: {str(e)}"
