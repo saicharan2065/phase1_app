@@ -82,29 +82,69 @@ def install_hf_model(hf_id, progress=gr.Progress()):
     
     progress(0, desc=f"Fetching metadata for {hf_id}...")
     try:
-        from huggingface_hub import HfApi, hf_hub_download
-        api = HfApi()
+        from huggingface_hub import HfApi, snapshot_download
+        import concurrent.futures
+        import os
+        import time
+        from pathlib import Path
         
+        api = HfApi()
         info = api.model_info(repo_id=hf_id)
+        
         files_to_download = [f for f in info.siblings]
         total_bytes = sum((f.size or 0) for f in files_to_download)
         total_gb = total_bytes / (1024**3)
+        if total_bytes == 0: total_bytes = 1
         
-        downloaded_bytes = 0
+        safe_repo_name = hf_id.replace("/", "--")
+        cache_dir = os.path.join(str(Path.home()), ".cache", "huggingface", "hub", f"models--{safe_repo_name}")
         
-        for f in files_to_download:
-            filename = f.rfilename
-            file_size = f.size or 0
-            file_size_gb = file_size / (1024**3)
+        # Get baseline size (if partial download exists)
+        baseline_bytes = 0
+        if os.path.exists(cache_dir):
+            for dirpath, _, filenames in os.walk(cache_dir):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if not os.path.islink(fp):
+                        baseline_bytes += os.path.getsize(fp)
+                        
+        last_bytes = baseline_bytes
+        last_time = time.time()
+        speed_str = "0.00 MB/s"
+        
+        # Run standard snapshot_download in background so we can track disk bytes live
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(snapshot_download, repo_id=hf_id)
             
-            # Update progress before downloading file
-            current_gb = downloaded_bytes / (1024**3)
-            progress(downloaded_bytes / max(total_bytes, 1), desc=f"Downloading {filename} ({file_size_gb:.2f} GB) ... Overall: {current_gb:.2f} / {total_gb:.2f} GB")
-            
-            # This triggers the actual download and caches it perfectly
-            hf_hub_download(repo_id=hf_id, filename=filename)
-            
-            downloaded_bytes += file_size
+            while not future.done():
+                current_bytes = 0
+                if os.path.exists(cache_dir):
+                    for dirpath, _, filenames in os.walk(cache_dir):
+                        for f in filenames:
+                            fp = os.path.join(dirpath, f)
+                            if not os.path.islink(fp):  # Avoid double-counting HF symlinks
+                                current_bytes += os.path.getsize(fp)
+                                
+                display_bytes = min(current_bytes, total_bytes)
+                current_gb = display_bytes / (1024**3)
+                
+                current_time = time.time()
+                time_diff = current_time - last_time
+                
+                # Update speed every 1 second
+                if time_diff >= 1.0:
+                    bytes_diff = current_bytes - last_bytes
+                    speed_mb_s = (bytes_diff / (1024**2)) / time_diff
+                    if speed_mb_s < 0: speed_mb_s = 0
+                    speed_str = f"{speed_mb_s:.2f} MB/s"
+                    
+                    last_bytes = current_bytes
+                    last_time = current_time
+                
+                progress(display_bytes / total_bytes, desc=f"Downloading... {current_gb:.2f} / {total_gb:.2f} GB | Speed: {speed_str}")
+                time.sleep(0.5)
+                
+            future.result() # Raise any exceptions from the download thread
             
         progress(1.0, desc=f"Download Complete: {total_gb:.2f} / {total_gb:.2f} GB")
         return f"Successfully installed: {hf_id}"
