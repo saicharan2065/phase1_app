@@ -22,6 +22,9 @@ from tabs.reports import create_reports_tab
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
 compact_theme = gr.themes.Soft(
+    primary_hue="emerald",
+    secondary_hue="green",
+    neutral_hue="slate",
     spacing_size="sm", 
     text_size="sm",
     radius_size="sm"

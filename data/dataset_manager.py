@@ -57,8 +57,10 @@ class DatasetManager:
             # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
             limit = None if limit_str == "ALL" else int(limit_str)
             
-            # Load dataset lazily
-            ds = load_dataset(dataset_id, split='train', streaming=True, cache_dir=self.cache_dir)
+            # Load dataset lazily without hardcoded split
+            ds_dict = load_dataset(dataset_id, streaming=True, cache_dir=self.cache_dir)
+            split_name = list(ds_dict.keys())[0]
+            ds = ds_dict[split_name]
             
             if limit:
                 ds = ds.take(limit)
