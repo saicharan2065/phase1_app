@@ -33,10 +33,18 @@ compact_theme = gr.themes.Default(
     body_background_fill_dark="white",
     block_background_fill="white",
     block_background_fill_dark="white",
+    body_text_color="black",
+    body_text_color_dark="black",
+    block_title_text_color="black",
+    block_title_text_color_dark="black",
+    block_label_text_color="black",
+    block_label_text_color_dark="black",
     button_primary_background_fill="*primary_500",
     button_primary_background_fill_dark="*primary_600",
     button_primary_text_color="white",
-    button_primary_text_color_dark="white"
+    button_primary_text_color_dark="white",
+    button_secondary_text_color="black",
+    button_secondary_text_color_dark="black"
 )
 
 def create_app():
