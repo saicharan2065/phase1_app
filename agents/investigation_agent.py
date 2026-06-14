@@ -5,16 +5,16 @@ class InvestigationAgent:
     def __init__(self, graph=None):
         self.graph = graph
 
-    def investigate(self, customer_id, fraud_score=0, aml_score=0):
+    def investigate(self, suspect_id, fraud_score=0, aml_score=0):
         # Gather graph context
         connected_entities = []
         relationships = []
-        if self.graph and self.graph.has_node(customer_id):
-            neighbors = list(self.graph.neighbors(customer_id))
+        if self.graph and self.graph.has_node(suspect_id):
+            neighbors = list(self.graph.neighbors(suspect_id))
             for n in neighbors:
                 connected_entities.append(n)
-                rel = self.graph.edges[customer_id, n].get("relationship", "connected")
-                relationships.append(f"{customer_id} --[{rel}]--> {n}")
+                rel = self.graph.edges[suspect_id, n].get("relationship", "connected")
+                relationships.append(f"{suspect_id} --[{rel}]--> {n}")
                 
         # Aggregate Risk Factors
         risk_factors = []
@@ -29,7 +29,7 @@ class InvestigationAgent:
             summary += "Multiple high-risk signals present requiring manual review."
             
         markdown_report = f"""# 🤖 DeepSeek-R1 Automated Investigation Report
-**Entity Analyzed:** `{customer_id}`
+**Entity Analyzed:** `{suspect_id}`
 
 ## 🔍 Context & Link Analysis
 """
@@ -50,13 +50,13 @@ class InvestigationAgent:
             
         markdown_report += "\n## ⚖️ Final LLM Conclusion\n"
         if not risk_factors:
-            markdown_report += f"> The mathematical embedding of `{customer_id}` does not resemble known historical fraud topologies. **Recommendation:** Proceed with standard monitoring."
+            markdown_report += f"> The mathematical embedding of `{suspect_id}` does not resemble known historical fraud topologies. **Recommendation:** Proceed with standard monitoring."
         else:
-            markdown_report += f"> The structural and behavioral footprint of `{customer_id}` strongly correlates with sophisticated obfuscation techniques. **Recommendation:** Freeze assets and escalate to human review immediately."
+            markdown_report += f"> The structural and behavioral footprint of `{suspect_id}` strongly correlates with sophisticated obfuscation techniques. **Recommendation:** Freeze assets and escalate to human review immediately."
 
         # Persist automatically to storage/investigations
         os.makedirs("storage/investigations", exist_ok=True)
-        safe_id = str(customer_id).replace("/", "_").replace("\\", "_")
+        safe_id = str(suspect_id).replace("/", "_").replace("\\", "_")
         with open(f"storage/investigations/{safe_id}_report.md", "w", encoding="utf-8") as f:
             f.write(markdown_report)
             

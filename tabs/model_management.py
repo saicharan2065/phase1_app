@@ -24,6 +24,8 @@ def get_cached_hf_models():
         cache = scan_cache_dir()
         repos = []
         for repo in cache.repos:
+            if getattr(repo, "repo_type", "model") != "model":
+                continue
             size_gb = repo.size_on_disk / (1024**3)
             repos.append(f"{repo.repo_id} ({size_gb:.2f} GB)")
             

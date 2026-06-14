@@ -14,7 +14,7 @@ class GraphVisualizer:
         for node, data in self.graph.nodes(data=True):
             node_type = data.get("type", "Unknown")
             color = "#97C2FC"
-            if node_type == "Customer":
+            if node_type == "Suspect":
                 color = "#FF9999"
             elif node_type == "Phone":
                 color = "#99FF99"

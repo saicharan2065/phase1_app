@@ -21,11 +21,11 @@ class FraudRingDetector:
         
         for idx, comp in enumerate(components):
             if len(comp) > 2: # At least 3 nodes to be considered a ring
-                # Find how many are customers vs shared resources
-                customers = [n for n in comp if str(n).startswith("CUST_")]
-                shared_resources = [n for n in comp if not str(n).startswith("CUST_")]
+                # Find how many are suspects vs shared resources
+                suspects = [n for n in comp if str(n).startswith("SUSPECT_")]
+                shared_resources = [n for n in comp if not str(n).startswith("SUSPECT_")]
                 
-                if len(customers) > 1 and len(shared_resources) > 0:
+                if len(suspects) > 1 and len(shared_resources) > 0:
                     # GNN Scoring: Aggregate PageRank and Betweenness
                     hub_score = 0
                     hub_name = "None"
@@ -35,7 +35,7 @@ class FraudRingDetector:
                             hub_score = score
                             hub_name = str(r)
                             
-                    base_risk = min(len(customers) * 20 + len(shared_resources) * 10, 80)
+                    base_risk = min(len(suspects) * 20 + len(shared_resources) * 10, 80)
                     final_risk_score = min(base_risk + int(hub_score * 50), 100) # Boost by hub importance
                     
                     # Determine reason based on shared resources
@@ -47,7 +47,7 @@ class FraudRingDetector:
                     clusters.append({
                         "Cluster ID": f"RING_{idx+1}",
                         "Members": len(comp),
-                        "Customers Involved": len(customers),
+                        "Suspects Involved": len(suspects),
                         "Hidden Hub Detected": hub_name,
                         "Hub Centrality Score": round(hub_score, 4),
                         "Risk Score": final_risk_score,

@@ -16,8 +16,8 @@ class EntityGraphEngine:
         address_col = next((c for c in df.columns if 'address' in c.lower() or 'residence' in c.lower()), None)
 
         for _, row in df.iterrows():
-            entity_id = f"CUST_{row[id_col]}"
-            self.graph.add_node(entity_id, type="Customer")
+            entity_id = f"SUSPECT_{row[id_col]}"
+            self.graph.add_node(entity_id, type="Suspect")
             
             if phone_col and pd.notna(row[phone_col]):
                 phone_node = f"PHONE_{row[phone_col]}"

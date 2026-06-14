@@ -5,13 +5,13 @@ import json
 
 import time
 
-def run_investigation(cust_id):
-    if not cust_id:
-        yield "Please provide a Customer ID."
+def run_investigation(suspect_id):
+    if not suspect_id:
+        yield "Please provide a Suspect ID."
         return
         
     agent = InvestigationAgent(graph=None) 
-    result = agent.investigate(cust_id, fraud_score=60, aml_score=40)
+    result = agent.investigate(suspect_id, fraud_score=60, aml_score=40)
     
     output = ""
     # Simulate LLM typing effect
@@ -22,8 +22,8 @@ def run_investigation(cust_id):
 
 def create_investigations_tab():
     gr.Markdown("### Investigation Agent")
-    cust_id = gr.Textbox(label="Customer ID")
+    suspect_id = gr.Textbox(label="Suspect ID")
     inv_btn = gr.Button("Initialize Autonomous Investigation", variant="primary")
     inv_out = gr.Markdown(label="Investigation Report")
     
-    inv_btn.click(fn=run_investigation, inputs=cust_id, outputs=inv_out)
+    inv_btn.click(fn=run_investigation, inputs=suspect_id, outputs=inv_out)
