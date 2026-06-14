@@ -84,14 +84,19 @@ class AlertEngine:
         except Exception as e:
             return False, f"SMTP Error: {str(e)}"
 
-    def _dispatch_email(self, alert_data):
+    def _dispatch_email(self, alert_data, target_email=None):
         config = self.load_smtp_config()
         if not config:
             return
+            
+        recipient = target_email if target_email else config.get("recipient")
+        if not recipient:
+            return
+            
         try:
             msg = MIMEMultipart()
             msg["From"] = config["email"]
-            msg["To"] = config["recipient"]
+            msg["To"] = recipient
             msg["Subject"] = f"[{alert_data['Level']}] Financial Crime Alert: {alert_data['Alert ID']}"
             
             body = f"""
@@ -116,7 +121,7 @@ class AlertEngine:
         except Exception as e:
             print(f"Failed to send email alert: {str(e)}")
 
-    def generate_alert(self, entity_id, source, level, description):
+    def generate_alert(self, entity_id, source, level, description, target_email=None):
         alert_id = f"ALT-{str(uuid.uuid4())[:8].upper()}"
         alert_data = {
             "Alert ID": alert_id,
@@ -133,7 +138,7 @@ class AlertEngine:
             
         # Dispatch email if HIGH or CRITICAL
         if level in ["HIGH", "CRITICAL"]:
-            self._dispatch_email(alert_data)
+            self._dispatch_email(alert_data, target_email)
             
         return alert_data
 

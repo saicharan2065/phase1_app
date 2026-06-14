@@ -82,6 +82,15 @@ compact_theme = gr.themes.Default(
     color_accent_soft="lightgreen"
 )
 
+css_override = """
+button { background-color: white !important; color: black !important; border: 1px solid lightgreen !important; }
+button:hover { background-color: lightgreen !important; color: black !important; }
+button.primary { background-color: lightgreen !important; color: black !important; }
+button.primary:hover { background-color: white !important; color: black !important; border: 1px solid lightgreen !important; }
+.gradio-container { background-color: white !important; }
+.dark { background-color: white !important; }
+"""
+
 def get_compact_metrics():
     try:
         from tabs.model_management import get_active_model_state
@@ -103,7 +112,7 @@ def get_compact_metrics():
     </div>"""
 
 def create_app():
-    with gr.Blocks(title="Financial Crime OS") as app:
+    with gr.Blocks(title="Financial Crime OS", css=css_override) as app:
         with gr.Row():
             with gr.Column(scale=3):
                 gr.Markdown("# Financial Crime Operating System")

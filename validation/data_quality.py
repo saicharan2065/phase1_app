@@ -51,7 +51,14 @@ class DataQualityAnalyzer:
         overall_score = max(0, 100 - (total_missing / total_cells * 100) - (duplicate_count / total_rows * 100))
         overall_score = round(overall_score, 2)
 
-        # Generate visual
-        fig = px.bar(col_quality_df, x="Column", y="Quality Score", title="Column Quality Scores", color="Quality Score", color_continuous_scale="RdYlGn")
+        # Generate visual using matplotlib
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.bar(col_quality_df["Column"], col_quality_df["Quality Score"], color="lightgreen", edgecolor="black")
+        ax.set_title("Column Quality Scores")
+        ax.set_ylabel("Quality Score (%)")
+        ax.set_ylim(0, 100)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
         
         return overall_score, col_quality_df, fig

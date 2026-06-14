@@ -33,5 +33,8 @@ class GraphVisualizer:
         
         if os.path.exists(output_path):
             with open(output_path, "r", encoding="utf-8") as f:
-                return f.read()
+                html_content = f.read()
+                import html
+                escaped_html = html.escape(html_content)
+                return f'<iframe srcdoc="{escaped_html}" width="100%" height="600px" style="border:none;"></iframe>'
         return "<h3>Graph could not be generated</h3>"
