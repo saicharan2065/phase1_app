@@ -45,7 +45,7 @@ def create_mi300x_dashboard_tab():
         btn_vision = gr.Button("🚀 Start Vision Forensics (48.5 GB)")
         btn_gnn = gr.Button("🚀 Start GNN Topography (44.1 GB)")
         
-    master_btn = gr.Button("☢️ EXECUTE MI300X GLOBAL STRESS TEST (START ALL)", variant="primary", size="lg")
+    master_btn = gr.Button("☢️ EXECUTE MI300X GLOBAL STRESS TEST (START ALL)", variant="primary", size="lg", elem_classes="nuclear-btn")
     
     status_out = gr.Textbox(label="Command Center Terminal", interactive=False)
     

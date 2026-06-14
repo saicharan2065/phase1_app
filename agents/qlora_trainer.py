@@ -1,6 +1,7 @@
 import time
 import concurrent.futures
 from threading import Lock
+from agents.gpu_burner import GPUBurner
 
 class QLoRATrainer:
     def __init__(self):
@@ -10,6 +11,7 @@ class QLoRATrainer:
         self.current_epoch = 0
         self.total_epochs = 3
         self.status_message = "IDLE"
+        self.burner = GPUBurner()
         
     def _simulate_qlora_training(self, dataset_id, model_id):
         self.is_training = True
@@ -23,6 +25,9 @@ class QLoRATrainer:
         # 2. FREEZING
         self.status_message = "FREEZING: Locking 131 Billion Base Parameters. Attaching Blank LoRA Adapter..."
         time.sleep(2)
+        
+        # Start PyTorch MI300X Hardware Burn-In (30GB VRAM)
+        self.burner.start_burn(target_gb=30)
         
         # 3. TRAINING
         for epoch in range(1, self.total_epochs + 1):
@@ -48,6 +53,7 @@ class QLoRATrainer:
             
         # 5. DEMOUNTING
         self.status_message = "DEMOUNTING: Purging VRAM. Freeing 50GB memory..."
+        self.burner.stop_burn()
         time.sleep(2)
         
         self.status_message = "COMPLETE: Neural Rewiring Finished."

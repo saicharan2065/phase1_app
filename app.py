@@ -91,6 +91,8 @@ button { background-color: white !important; color: black !important; border: 1p
 button:hover { background-color: lightgreen !important; color: black !important; }
 button.primary { background-color: lightgreen !important; color: black !important; }
 button.primary:hover { background-color: white !important; color: black !important; border: 1px solid lightgreen !important; }
+button.nuclear-btn { background-color: #ff3333 !important; color: white !important; border: 2px solid darkred !important; font-weight: bold !important; }
+button.nuclear-btn:hover { background-color: darkred !important; color: white !important; }
 .gradio-container { background-color: white !important; }
 .dark { background-color: white !important; }
 """

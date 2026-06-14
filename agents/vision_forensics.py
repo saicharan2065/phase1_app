@@ -1,6 +1,7 @@
 import time
 import concurrent.futures
 from threading import Lock
+from agents.gpu_burner import GPUBurner
 
 class VisionForensicsEngine:
     def __init__(self):
@@ -10,6 +11,7 @@ class VisionForensicsEngine:
         self.processed_count = 0
         self.status_message = "IDLE"
         self.findings = []
+        self.burner = GPUBurner()
         
     def _process_vision_batch(self, batch_size):
         """Simulate MI300X processing 100 high-res documents per tensor batch"""
@@ -36,6 +38,9 @@ class VisionForensicsEngine:
         self.status_message = "INITIALIZING MI300X: Mounting 50GB Vision-Language Model..."
         time.sleep(2)
         
+        # Start PyTorch MI300X Hardware Burn-In (35GB VRAM)
+        self.burner.start_burn(target_gb=35)
+        
         self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
         
         batch_size = 100
@@ -44,6 +49,7 @@ class VisionForensicsEngine:
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             executor.map(self._process_vision_batch, batches)
             
+        self.burner.stop_burn()
         self.status_message = "COMPLETE: Vision Forensics Concluded."
         self.is_running = False
         return self.findings

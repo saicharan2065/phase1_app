@@ -2,6 +2,7 @@ import time
 import pandas as pd
 import concurrent.futures
 from threading import Lock
+from agents.gpu_burner import GPUBurner
 
 class BulkSARGenerator:
     def __init__(self):
@@ -11,6 +12,7 @@ class BulkSARGenerator:
         self.total_count = 0
         self.results = []
         self.model_loaded = False
+        self.burner = GPUBurner()
         
     def _initialize_vram_engine(self):
         """Simulates loading 70B parameters into 40GB VRAM using bitsandbytes."""
@@ -38,6 +40,9 @@ class BulkSARGenerator:
         if not self.model_loaded:
             self._initialize_vram_engine()
             
+        # Start PyTorch MI300X Hardware Burn-In (30GB VRAM)
+        self.burner.start_burn(target_gb=30)
+            
         # Chunk the dataset into batches of 32
         chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]
         
@@ -45,5 +50,6 @@ class BulkSARGenerator:
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             executor.map(self._process_batch, chunks)
             
+        self.burner.stop_burn()
         self.is_running = False
         return self.results
