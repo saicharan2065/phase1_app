@@ -1,0 +1,15 @@
+# Ignore large AI model adapters and fine-tunes
+adapters/
+storage/adapters/
+*.safetensors
+*.bin
+
+# Ignore dummy data storage
+storage/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore environment files
+.env

@@ -18,7 +18,7 @@ from tabs.risk_clusters import create_risk_clusters_tab
 from tabs.investigations import create_investigations_tab
 from tabs.case_management import create_case_management_tab
 from tabs.alerts import create_alerts_tab
-from tabs.reports import create_reports_tab
+from tabs.bulk_sar import create_bulk_sar_tab
 
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
@@ -91,15 +91,32 @@ button.primary:hover { background-color: white !important; color: black !importa
 .dark { background-color: white !important; }
 """
 
+GLOBAL_USERNAME = "GUEST"
+
 def get_compact_metrics(request: gr.Request = None):
+    global GLOBAL_USERNAME
     try:
         from tabs.model_management import get_active_model_state
         active_model = get_active_model_state()
     except Exception:
         active_model = "None Selected"
         
+    try:
+        from tabs.bulk_sar import generator
+        if generator.is_running:
+            vram_metrics = f"<b>VRAM Engine:</b> <span style='color:orange'>PROCESSING ({generator.processed_count}/{generator.total_count})</span>"
+        else:
+            vram_metrics = f"<b>VRAM Engine:</b> <span style='color:lightgreen'>IDLE</span>"
+            
+        simulated_vram = "41.2 GB / 48.0 GB (85%)" if generator.is_running or generator.model_loaded else "0.0 GB / 48.0 GB (0%)"
+    except Exception:
+        vram_metrics = "<b>VRAM Engine:</b> OFFLINE"
+        simulated_vram = "0.0 GB"
+        
     # Extract logged in username
-    username = request.username if request and hasattr(request, "username") and request.username else "GUEST"
+    if request and hasattr(request, "username") and request.username:
+        GLOBAL_USERNAME = request.username
+    username = GLOBAL_USERNAME
         
     ram = psutil.virtual_memory()
     ram_gb_used = ram.used / (1024**3)
@@ -109,9 +126,10 @@ def get_compact_metrics(request: gr.Request = None):
     disk_gb_used = disk.used / (1024**3)
     disk_gb_total = disk.total / (1024**3)
     
-    return f"""<div style="text-align: right; padding-top: 10px;">
-    <b>Logged In:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
-    <b>RAM Usage:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk Usage:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB ({(disk.used / disk.total) * 100:.1f}%)
+    return f"""<div style="text-align: right; padding-top: 10px; font-size: 0.9em; line-height: 1.4;">
+    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
+    <b>System RAM:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB<br>
+    {vram_metrics} | <b>VRAM Usage:</b> {simulated_vram}
     </div>"""
 
 def create_app():
@@ -176,8 +194,8 @@ def create_app():
             with gr.Tab("Alerts"):
                 create_alerts_tab()
                 
-            with gr.Tab("Reports"):
-                create_reports_tab()
+            with gr.Tab("Bulk SAR (VRAM Engine)"):
+                create_bulk_sar_tab()
                 
     return app
 

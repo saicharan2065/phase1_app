@@ -11,9 +11,9 @@ def generate_mock_alert(ent_id, level, target_email):
     ae.generate_alert(ent_id, "Manual Trigger", level, "Manually generated alert from UI", target_email=target_email)
     return refresh_alerts()
 
-def save_smtp(email, password):
+def save_smtp(email):
     ae = AlertEngine()
-    msg = ae.save_smtp_config(email, password, "")
+    msg = ae.save_smtp_config(email, "", "")
     return msg
 
 def test_smtp():
@@ -25,8 +25,8 @@ def load_smtp_ui():
     ae = AlertEngine()
     config = ae.load_smtp_config()
     if config:
-        return config.get("email", ""), config.get("password", "")
-    return "", ""
+        return config.get("email", "")
+    return ""
 
 def create_alerts_tab():
     with gr.Row():
@@ -46,8 +46,7 @@ def create_alerts_tab():
             gr.Markdown("### Agent SMTP Profile")
             gr.Markdown("Configure the centralized Agent Email Account used to dispatch alerts. The system will automatically discover the underlying server (Gmail/Office365).")
             
-            smtp_email = gr.Textbox(label="Agent Sender Email (e.g., agent@corp.com)")
-            smtp_pass = gr.Textbox(label="App Password (Leave blank for Simulation Mode)", type="password")
+            smtp_email = gr.Textbox(label="Agent Sender Email (MUST exactly match the backend App Password)")
             
             with gr.Row():
                 save_btn = gr.Button("Save Agent Configuration")
@@ -55,9 +54,8 @@ def create_alerts_tab():
                 
             smtp_status = gr.Textbox(label="SMTP Status", interactive=False)
             
-            em, pw = load_smtp_ui()
+            em = load_smtp_ui()
             smtp_email.value = em
-            smtp_pass.value = pw
             
-            save_btn.click(fn=save_smtp, inputs=[smtp_email, smtp_pass], outputs=smtp_status)
+            save_btn.click(fn=save_smtp, inputs=[smtp_email], outputs=smtp_status)
             test_btn.click(fn=test_smtp, outputs=smtp_status)

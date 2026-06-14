@@ -7,6 +7,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 class AlertEngine:
+    HARDCODED_APP_PASSWORD = "mwep jrif xapl somt"
+
     def __init__(self, storage_dir="storage/alerts"):
         self.storage_dir = storage_dir
         self.smtp_config_path = "storage/smtp_config.json"
@@ -52,7 +54,6 @@ class AlertEngine:
             "server": server,
             "port": port,
             "email": email,
-            "password": password,
             "recipient": recipient
         }
         with open(self.smtp_config_path, "w") as f:
@@ -70,20 +71,16 @@ class AlertEngine:
         if not config:
             return False, "No Agent Configuration found. Please save first."
             
-        # Simulation Mode
-        if not config.get("password"):
-            return True, "Simulation Mode Active: Test email logic verified offline."
-            
         try:
             msg = MIMEMultipart()
             msg["From"] = config["email"]
             msg["To"] = config["email"] # Send test to self
             msg["Subject"] = "Financial Crime OS - Test Email"
-            msg.attach(MIMEText("This is a test email to verify your SMTP configuration works.", "plain"))
+            msg.attach(MIMEText("This is a test email to verify your SMTP configuration works using the hardcoded App Password.", "plain"))
             
             with smtplib.SMTP(config["server"], int(config["port"])) as server:
                 server.starttls()
-                server.login(config["email"], config["password"])
+                server.login(config["email"], self.HARDCODED_APP_PASSWORD)
                 server.send_message(msg)
             return True, "Test email sent successfully!"
         except Exception as e:
@@ -96,8 +93,6 @@ class AlertEngine:
             
         if not target_email:
             return
-            
-        is_simulation = not config.get("password")
         
         body = f"""
         FINANCIAL CRIME ALERT TRIGGERED
@@ -117,12 +112,6 @@ class AlertEngine:
         recipients = [email.strip() for email in target_email.split(",") if email.strip()]
         
         for recipient in recipients:
-            if is_simulation:
-                sim_path = os.path.join(self.storage_dir, f"SIMULATED_EMAIL_{alert_data['Alert ID']}.txt")
-                with open(sim_path, "w") as f:
-                    f.write(f"TO: {recipient}\nFROM: {config['email']}\n{body}")
-                continue
-
             try:
                 msg = MIMEMultipart()
                 msg["From"] = config["email"]
@@ -132,7 +121,7 @@ class AlertEngine:
                 
                 with smtplib.SMTP(config["server"], int(config["port"])) as server:
                     server.starttls()
-                    server.login(config["email"], config["password"])
+                    server.login(config["email"], self.HARDCODED_APP_PASSWORD)
                     server.send_message(msg)
             except Exception as e:
                 print(f"Failed to send email alert to {recipient}: {str(e)}")
