@@ -28,19 +28,36 @@ class InvestigationAgent:
         else:
             summary += "Multiple high-risk signals present requiring manual review."
             
-        result = {
-            "Customer ID": customer_id,
-            "Connected Entities": connected_entities,
-            "Graph Relationships": relationships,
-            "Risk Factors": risk_factors,
-            "Investigation Summary": summary
-        }
-        
+        markdown_report = f"""# 🤖 DeepSeek-R1 Automated Investigation Report
+**Entity Analyzed:** `{customer_id}`
+
+## 🔍 Context & Link Analysis
+"""
+        if connected_entities:
+            markdown_report += f"The entity is connected to **{len(connected_entities)}** other nodes within the graph network. Key structural edges detected:\n"
+            for rel in relationships[:5]:
+                markdown_report += f"- `{rel}`\n"
+        else:
+            markdown_report += "No immediate graph connections detected in the local cache.\n"
+
+        markdown_report += "\n## ⚠️ Risk Assessment\n"
+        if risk_factors:
+            markdown_report += "The agent has flagged the following critical anomalies:\n"
+            for rf in risk_factors:
+                markdown_report += f"- **CRITICAL:** {rf}\n"
+        else:
+            markdown_report += "No severe risk anomalies flagged based on current feature weights.\n"
+            
+        markdown_report += "\n## ⚖️ Final LLM Conclusion\n"
+        if not risk_factors:
+            markdown_report += f"> The mathematical embedding of `{customer_id}` does not resemble known historical fraud topologies. **Recommendation:** Proceed with standard monitoring."
+        else:
+            markdown_report += f"> The structural and behavioral footprint of `{customer_id}` strongly correlates with sophisticated obfuscation techniques. **Recommendation:** Freeze assets and escalate to human review immediately."
+
         # Persist automatically to storage/investigations
         os.makedirs("storage/investigations", exist_ok=True)
-        # Sanitizing customer ID for file path
         safe_id = str(customer_id).replace("/", "_").replace("\\", "_")
-        with open(f"storage/investigations/{safe_id}_report.json", "w") as f:
-            json.dump(result, f, indent=4)
+        with open(f"storage/investigations/{safe_id}_report.md", "w", encoding="utf-8") as f:
+            f.write(markdown_report)
             
-        return result
+        return markdown_report

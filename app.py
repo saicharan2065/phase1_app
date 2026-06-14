@@ -91,12 +91,15 @@ button.primary:hover { background-color: white !important; color: black !importa
 .dark { background-color: white !important; }
 """
 
-def get_compact_metrics():
+def get_compact_metrics(request: gr.Request = None):
     try:
         from tabs.model_management import get_active_model_state
         active_model = get_active_model_state()
     except Exception:
         active_model = "None Selected"
+        
+    # Extract logged in username
+    username = request.username if request and hasattr(request, "username") and request.username else "GUEST"
         
     ram = psutil.virtual_memory()
     ram_gb_used = ram.used / (1024**3)
@@ -107,7 +110,7 @@ def get_compact_metrics():
     disk_gb_total = disk.total / (1024**3)
     
     return f"""<div style="text-align: right; padding-top: 10px;">
-    <b>Active Model:</b> {active_model}<br>
+    <b>Logged In:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
     <b>RAM Usage:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk Usage:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB ({(disk.used / disk.total) * 100:.1f}%)
     </div>"""
 
@@ -178,6 +181,14 @@ def create_app():
                 
     return app
 
+def auth_check(username, password):
+    valid_users = {
+        "admin": "admin123",
+        "agent1": "agent123",
+        "agent2": "agent123"
+    }
+    return username in valid_users and valid_users[username] == password
+
 if __name__ == "__main__":
     app = create_app()
-    app.launch(theme=compact_theme)
+    app.launch(theme=compact_theme, auth=auth_check, auth_message="Financial Crime OS - Please log in (admin/admin123 or agent1/agent123)")
