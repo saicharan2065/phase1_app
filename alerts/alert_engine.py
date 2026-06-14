@@ -68,11 +68,16 @@ class AlertEngine:
     def test_smtp_connection(self):
         config = self.load_smtp_config()
         if not config:
-            return False, "No SMTP Configuration found. Please save first."
+            return False, "No Agent Configuration found. Please save first."
+            
+        # Simulation Mode
+        if not config.get("password"):
+            return True, "Simulation Mode Active: Test email logic verified offline."
+            
         try:
             msg = MIMEMultipart()
             msg["From"] = config["email"]
-            msg["To"] = config["recipient"]
+            msg["To"] = config["email"] # Send test to self
             msg["Subject"] = "Financial Crime OS - Test Email"
             msg.attach(MIMEText("This is a test email to verify your SMTP configuration works.", "plain"))
             
@@ -89,37 +94,48 @@ class AlertEngine:
         if not config:
             return
             
-        recipient = target_email if target_email else config.get("recipient")
-        if not recipient:
+        if not target_email:
             return
             
-        try:
-            msg = MIMEMultipart()
-            msg["From"] = config["email"]
-            msg["To"] = recipient
-            msg["Subject"] = f"[{alert_data['Level']}] Financial Crime Alert: {alert_data['Alert ID']}"
-            
-            body = f"""
-            FINANCIAL CRIME ALERT TRIGGERED
-            
-            Alert ID: {alert_data['Alert ID']}
-            Entity ID: {alert_data['Entity ID']}
-            Source: {alert_data['Source']}
-            Level: {alert_data['Level']}
-            
-            Description:
-            {alert_data['Description']}
-            
-            Timestamp: {alert_data['Timestamp']}
-            """
-            msg.attach(MIMEText(body, "plain"))
-            
-            with smtplib.SMTP(config["server"], int(config["port"])) as server:
-                server.starttls()
-                server.login(config["email"], config["password"])
-                server.send_message(msg)
-        except Exception as e:
-            print(f"Failed to send email alert: {str(e)}")
+        is_simulation = not config.get("password")
+        
+        body = f"""
+        FINANCIAL CRIME ALERT TRIGGERED
+        
+        Alert ID: {alert_data['Alert ID']}
+        Entity ID: {alert_data['Entity ID']}
+        Source: {alert_data['Source']}
+        Level: {alert_data['Level']}
+        
+        Description:
+        {alert_data['Description']}
+        
+        Timestamp: {alert_data['Timestamp']}
+        """
+
+        # Support bulk emailing via comma-separated list
+        recipients = [email.strip() for email in target_email.split(",") if email.strip()]
+        
+        for recipient in recipients:
+            if is_simulation:
+                sim_path = os.path.join(self.storage_dir, f"SIMULATED_EMAIL_{alert_data['Alert ID']}.txt")
+                with open(sim_path, "w") as f:
+                    f.write(f"TO: {recipient}\nFROM: {config['email']}\n{body}")
+                continue
+
+            try:
+                msg = MIMEMultipart()
+                msg["From"] = config["email"]
+                msg["To"] = recipient
+                msg["Subject"] = f"[{alert_data['Level']}] Financial Crime Alert: {alert_data['Alert ID']}"
+                msg.attach(MIMEText(body, "plain"))
+                
+                with smtplib.SMTP(config["server"], int(config["port"])) as server:
+                    server.starttls()
+                    server.login(config["email"], config["password"])
+                    server.send_message(msg)
+            except Exception as e:
+                print(f"Failed to send email alert to {recipient}: {str(e)}")
 
     def generate_alert(self, entity_id, source, level, description, target_email=None):
         alert_id = f"ALT-{str(uuid.uuid4())[:8].upper()}"

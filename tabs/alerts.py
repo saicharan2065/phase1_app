@@ -36,21 +36,21 @@ def create_alerts_tab():
             with gr.Row():
                 ent_id = gr.Textbox(label="Entity ID")
                 level = gr.Dropdown(["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"], label="Level", value="CRITICAL")
-                target_email = gr.Textbox(label="Target User Email (Where to send)")
+                target_email = gr.Textbox(label="Target User Emails (Comma-separated list)")
                 trigger_btn = gr.Button("Dispatch Alert to User", variant="primary")
             
             alerts_df = gr.Dataframe(label="Alerts Database", value=refresh_alerts)
             trigger_btn.click(fn=generate_mock_alert, inputs=[ent_id, level, target_email], outputs=alerts_df)
             
         with gr.Column(scale=1):
-            gr.Markdown("### Admin SMTP Profile")
-            gr.Markdown("Configure the centralized Admin Email Account used to dispatch alerts. The system will automatically discover the underlying server (Gmail/Office365).")
+            gr.Markdown("### Agent SMTP Profile")
+            gr.Markdown("Configure the centralized Agent Email Account used to dispatch alerts. The system will automatically discover the underlying server (Gmail/Office365).")
             
-            smtp_email = gr.Textbox(label="Admin Sender Email (e.g., admin@corp.com)")
-            smtp_pass = gr.Textbox(label="App Password", type="password")
+            smtp_email = gr.Textbox(label="Agent Sender Email (e.g., agent@corp.com)")
+            smtp_pass = gr.Textbox(label="App Password (Leave blank for Simulation Mode)", type="password")
             
             with gr.Row():
-                save_btn = gr.Button("Save Admin Configuration")
+                save_btn = gr.Button("Save Agent Configuration")
                 test_btn = gr.Button("Test Connection", variant="secondary")
                 
             smtp_status = gr.Textbox(label="SMTP Status", interactive=False)
