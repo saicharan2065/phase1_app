@@ -19,6 +19,7 @@ from tabs.investigations import create_investigations_tab
 from tabs.case_management import create_case_management_tab
 from tabs.alerts import create_alerts_tab
 from tabs.bulk_sar import create_bulk_sar_tab
+from tabs.qlora_training import create_qlora_tab
 
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
@@ -113,6 +114,15 @@ def get_compact_metrics(request: gr.Request = None):
         vram_metrics = "<b>VRAM Engine:</b> OFFLINE"
         simulated_vram = "0.0 GB"
         
+    try:
+        from tabs.qlora_training import trainer
+        if trainer.is_training:
+            qlora_metrics = f" | <b>QLoRA:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>TRAINING ({trainer.progress_percent}%)</span>"
+        else:
+            qlora_metrics = f" | <b>QLoRA:</b> <span style='color:lightgreen'>IDLE</span>"
+    except Exception:
+        qlora_metrics = ""
+        
     # Extract logged in username
     if request and hasattr(request, "username") and request.username:
         GLOBAL_USERNAME = request.username
@@ -129,7 +139,7 @@ def get_compact_metrics(request: gr.Request = None):
     return f"""<div style="text-align: right; padding-top: 10px; font-size: 0.9em; line-height: 1.4;">
     <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
     <b>System RAM:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB<br>
-    {vram_metrics} | <b>VRAM Usage:</b> {simulated_vram}
+    {vram_metrics}{qlora_metrics} | <b>VRAM Usage:</b> {simulated_vram}
     </div>"""
 
 def create_app():
@@ -194,8 +204,11 @@ def create_app():
             with gr.Tab("Alerts"):
                 create_alerts_tab()
                 
-            with gr.Tab("Bulk SAR (VRAM Engine)"):
+            with gr.Tab("Reports"):
                 create_bulk_sar_tab()
+                
+            with gr.Tab("QLoRA Studio"):
+                create_qlora_tab()
                 
     return app
 

@@ -13,17 +13,9 @@ class DatasetManager:
         # Hardcoded specific dataset mappings for our enterprise categories
         # as HuggingFace search can be noisy
         self.category_map = {
-            "AML / Anti Money Laundering": ['Annanay/aml_song_lyrics_balanced'],
-            "Fraud Detection": ['anmorgan24/creditcard_fraud_csv'],
-            "Banking Transactions": ['PolyAI/banking77', 'dvilasuero/banking_with_vectors'],
-            "Customer Profiles": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
-            "KYC": ['UniqueData/caucasian-people-kyc-photo-dataset'],
-            "PII Data": ['redmadrobot-rnd/pii_benchmark', 'Meddies/meddies-pii'],
-            "Insurance Claims": ['superjordan/insurance_qa'],
-            "Compliance": ['Akshata/autotrain-data-compliance'],
-            "Vendor Risk": ['Falah/local_market_vendor_prompts'],
-            "Adverse Media": ['rangeva/adverse-media-dataset'],
-            "Synthetic Financial Data": ['gretelai/synthetic_pii_finance_multilingual', 'modeldev/synthetic_pii_finance']
+            "AML & Financial Fraud": ['dvilasuero/banking_with_vectors', 'zeroshot/twitter-financial-news-sentiment'],
+            "Customer Profiles & KYC": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
+            "Synthetic Transactions": ['gretelai/synthetic_pii_finance_multilingual']
         }
 
     def fetch_datasets_by_category(self, category):
