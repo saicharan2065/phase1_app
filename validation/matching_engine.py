@@ -42,6 +42,26 @@ class ReferenceDataMatchingEngine:
         source_docs = source_df[[s_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
         ref_docs = ref_df[[r_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
 
+        # Optional Auto-Translation before semantic matching
+        try:
+            from deep_translator import GoogleTranslator
+            translator = GoogleTranslator(source='auto', target='en')
+            def safe_translate(texts):
+                translated = []
+                for t in texts:
+                    try:
+                        translated.append(translator.translate(t) or t)
+                    except:
+                        translated.append(t) # Fallback to original text if API fails
+                return translated
+                
+            # Only translate if there are fewer than 1000 rows to prevent extreme API throttling
+            if len(source_docs) <= 1000 and len(ref_docs) <= 1000:
+                source_docs = safe_translate(source_docs)
+                ref_docs = safe_translate(ref_docs)
+        except Exception:
+            pass
+
         # Fast TF-IDF matrix multiplication
         vectorizer = TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4))
         vectorizer.fit(ref_docs + source_docs)
@@ -78,8 +98,9 @@ class ReferenceDataMatchingEngine:
             matches.append({
                 "Source Index": i,
                 "Reference Index": int(best_ref_indices[i]) if is_match else None,
-                "Confidence": round(float(best_score), 2),
+                "Confidence": f"{round(float(best_score), 2)}%",
                 "Status": "Match" if is_match else "Mismatch",
+                "Reason": f"Accepted: Found {round(float(best_score), 2)}% semantic overlap on mapped columns ({', '.join(common_cols)})" if is_match else "Rejected: No reference record met the threshold.",
                 "Source Data Evaluated": source_docs[i][:150] + "..." if len(source_docs[i]) > 150 else source_docs[i]
             })
             

@@ -24,6 +24,12 @@ def resolve_entities_ui(file):
             return "No duplicates or related entities found.", pd.DataFrame()
             
         res_df = pd.DataFrame(results)
+        
+        # Prevent browser crash by truncating massive dataframes
+        if len(res_df) > 100:
+            preview_df = res_df.head(100)
+            return f"Entity Resolution Complete (Showing first 100 of {len(res_df)} matches)", preview_df
+            
         return "Entity Resolution Complete", res_df
     except Exception as e:
         return f"Error: {str(e)}", pd.DataFrame()

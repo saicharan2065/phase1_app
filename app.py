@@ -24,7 +24,7 @@ from tabs.reports import create_reports_tab
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
 compact_theme = gr.themes.Default(
-    primary_hue="emerald",
+    primary_hue="green",
     secondary_hue="green",
     neutral_hue="slate",
     spacing_size="sm", 
@@ -67,6 +67,8 @@ compact_theme = gr.themes.Default(
     button_primary_background_fill_dark="lightgreen",
     button_primary_text_color="black",
     button_primary_text_color_dark="black",
+    button_primary_background_fill_hover="lightgreen",
+    button_primary_background_fill_hover_dark="lightgreen",
     button_secondary_background_fill="white",
     button_secondary_background_fill_dark="white",
     button_secondary_background_fill_hover="lightgreen",
@@ -77,7 +79,7 @@ compact_theme = gr.themes.Default(
     border_color_accent="lightgreen",
     border_color_accent_dark="lightgreen",
     color_accent="lightgreen",
-    color_accent_soft="white"
+    color_accent_soft="lightgreen"
 )
 
 def get_compact_metrics():

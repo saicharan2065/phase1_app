@@ -65,13 +65,18 @@ def generate_dummy_data(domain="generic", num_records=15):
             })
             
     elif domain in ["schema_discovery", "data_quality"]:
+        fname_col = random.choice(["first_name", "fname", "customer_name", "emp_fname"])
+        lname_col = random.choice(["last_name", "lname", "surname"])
+        email_col = random.choice(["email", "contact_email", "email_address"])
+        bal_col = random.choice(["balance", "account_balance", "curr_bal"])
+        
         for i in range(num_records):
             records.append({
                 "id": i,
-                "first_name": random.choice(["Alice", "Bob", None, "Charlie"]),
-                "last_name": random.choice(["Smith", "Jones", "", "Brown"]),
-                "email": random.choice(["test@example.com", "invalid-email", None, "admin@corp.com"]),
-                "balance": random.choice([100.50, -50.0, "ERROR", 0.0, 5000.0])
+                fname_col: random.choice(["Alice", "Bob", None, "Charlie"]),
+                lname_col: random.choice(["Smith", "Jones", "", "Brown"]),
+                email_col: random.choice(["test@example.com", "invalid-email", None, "admin@corp.com"]),
+                bal_col: random.choice([100.50, -50.0, "ERROR", 0.0, 5000.0])
             })
             
     else:
