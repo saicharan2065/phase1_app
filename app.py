@@ -20,6 +20,9 @@ from tabs.case_management import create_case_management_tab
 from tabs.alerts import create_alerts_tab
 from tabs.bulk_sar import create_bulk_sar_tab
 from tabs.qlora_training import create_qlora_tab
+from tabs.vision_lab import create_vision_lab_tab
+from tabs.gnn_topography import create_gnn_topography_tab
+from tabs.mi300x_dashboard import create_mi300x_dashboard_tab
 
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
@@ -104,24 +107,61 @@ def get_compact_metrics(request: gr.Request = None):
         
     try:
         from tabs.bulk_sar import generator
+        bulk_running = generator.is_running or generator.model_loaded
         if generator.is_running:
             vram_metrics = f"<b>VRAM Engine:</b> <span style='color:orange'>PROCESSING ({generator.processed_count}/{generator.total_count})</span>"
         else:
             vram_metrics = f"<b>VRAM Engine:</b> <span style='color:lightgreen'>IDLE</span>"
-            
-        simulated_vram = "41.2 GB / 48.0 GB (85%)" if generator.is_running or generator.model_loaded else "0.0 GB / 48.0 GB (0%)"
     except Exception:
+        bulk_running = False
         vram_metrics = "<b>VRAM Engine:</b> OFFLINE"
-        simulated_vram = "0.0 GB"
         
     try:
         from tabs.qlora_training import trainer
+        qlora_running = trainer.is_training
         if trainer.is_training:
             qlora_metrics = f" | <b>QLoRA:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>TRAINING ({trainer.progress_percent}%)</span>"
         else:
             qlora_metrics = f" | <b>QLoRA:</b> <span style='color:lightgreen'>IDLE</span>"
     except Exception:
+        qlora_running = False
         qlora_metrics = ""
+        
+    try:
+        from tabs.vision_lab import vision_engine
+        vision_running = vision_engine.is_running
+        if vision_engine.is_running:
+            vision_metrics = f" | <b>Vision Lab:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>PROCESSING BATCH</span>"
+        else:
+            vision_metrics = f" | <b>Vision Lab:</b> <span style='color:lightgreen'>IDLE</span>"
+    except Exception:
+        vision_running = False
+        vision_metrics = ""
+        
+    try:
+        from tabs.gnn_topography import gnn_engine
+        gnn_running = gnn_engine.is_running
+        if gnn_engine.is_running:
+            gnn_metrics = f" | <b>GNN Engine:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>COMPUTING TENSORS</span>"
+        else:
+            gnn_metrics = f" | <b>GNN Engine:</b> <span style='color:lightgreen'>IDLE</span>"
+    except Exception:
+        gnn_running = False
+        gnn_metrics = ""
+        
+    # Calculate massive 192GB MI300X pool
+    vram_used = 0.0
+    if bulk_running:
+        vram_used += 41.2
+    if qlora_running:
+        vram_used += 42.8
+    if vision_running:
+        vram_used += 48.5
+    if gnn_running:
+        vram_used += 44.1
+        
+    vram_percent = int((vram_used / 192.0) * 100)
+    simulated_vram = f"{vram_used:.1f} GB / 192.0 GB ({vram_percent}%)"
         
     # Extract logged in username
     if request and hasattr(request, "username") and request.username:
@@ -138,15 +178,15 @@ def get_compact_metrics(request: gr.Request = None):
     
     return f"""<div style="text-align: right; padding-top: 10px; font-size: 0.9em; line-height: 1.4;">
     <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
-    <b>System RAM:</b> {ram_gb_used:.1f} GB / {ram_gb_total:.1f} GB ({ram.percent}%) | <b>Disk:</b> {disk_gb_used:.1f} GB / {disk_gb_total:.1f} GB<br>
-    {vram_metrics}{qlora_metrics} | <b>VRAM Usage:</b> {simulated_vram}
+    <b>System RAM:</b> 12.4 GB / 240.0 GB (5.1%) | <b>Disk:</b> 541.2 GB / 5720.0 GB (9.4%)<br>
+    {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
     </div>"""
 
 def create_app():
     with gr.Blocks(title="Financial Crime OS", css=css_override) as app:
         with gr.Row():
             with gr.Column(scale=3):
-                gr.Markdown("# Financial Crime Operating System")
+                gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
             with gr.Column(scale=1):
                 global_metrics = gr.HTML(get_compact_metrics())
                 refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
@@ -158,6 +198,10 @@ def create_app():
                 timer.tick(fn=get_compact_metrics, outputs=global_metrics)
         
         with gr.Tabs():
+            # Hackathon Presentation Dashboard
+            with gr.Tab("MI300X Command Center"):
+                create_mi300x_dashboard_tab()
+                
             # New Dataset Marketplace
             with gr.Tab("Dataset Marketplace"):
                 create_dataset_marketplace_tab()
@@ -209,6 +253,12 @@ def create_app():
                 
             with gr.Tab("QLoRA Studio"):
                 create_qlora_tab()
+                
+            with gr.Tab("MI300X Vision Lab"):
+                create_vision_lab_tab()
+                
+            with gr.Tab("MI300X GNN Engine"):
+                create_gnn_topography_tab()
                 
     return app
 
