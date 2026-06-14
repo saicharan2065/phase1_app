@@ -23,6 +23,8 @@ class BulkSARGenerator:
         """Simulates GPU batch inference on a chunk of suspects."""
         batch_results = []
         for suspect in suspects:
+            if not self.is_running:
+                break
             time.sleep(0.15) # Simulate high-speed 4-bit tensor multiplication per token
             report = f"DeepSeek VRAM Engine analyzed {suspect}. Verified transaction velocity against known AML typologies."
             batch_results.append({"Suspect ID": suspect, "SAR Report": report, "Risk Level": "MODERATE"})
@@ -48,8 +50,13 @@ class BulkSARGenerator:
         
         # Dispatch to background threads to simulate CUDA streams
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            executor.map(self._process_batch, chunks)
+            # We use executor.map but rely on is_running to abort early inside the batch
+            list(executor.map(self._process_batch, chunks))
             
         self.burner.stop_burn()
         self.is_running = False
         return self.results
+        
+    def stop(self):
+        self.is_running = False
+        self.burner.stop_burn()

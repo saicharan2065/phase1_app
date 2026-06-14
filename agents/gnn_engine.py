@@ -14,6 +14,8 @@ class GNNEngine:
         self.burner = GPUBurner()
         
     def _compute_graph_tensors(self, chunk_size):
+        if not self.is_running:
+            return
         time.sleep(0.8) # Simulate heavy VRAM tensor multiplication
         
         import random
@@ -47,9 +49,14 @@ class GNNEngine:
         chunks = [chunk_size] * (self.total_nodes // chunk_size)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            executor.map(self._compute_graph_tensors, chunks)
+            list(executor.map(self._compute_graph_tensors, chunks))
             
         self.burner.stop_burn()
         self.status_message = "COMPLETE: Global Network Analyzed."
         self.is_running = False
         return self.findings
+        
+    def stop(self):
+        self.is_running = False
+        self.status_message = "ABORTED"
+        self.burner.stop_burn()

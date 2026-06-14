@@ -20,6 +20,8 @@ class VisionForensicsEngine:
         # Simulate occasional deep-fake detection
         import random
         for _ in range(batch_size):
+            if not self.is_running:
+                break
             if random.random() < 0.005: # 0.5% fraud rate
                 self.findings.append({
                     "Document ID": f"DOC_{random.randint(10000, 99999)}",
@@ -47,9 +49,14 @@ class VisionForensicsEngine:
         batches = [batch_size] * (self.total_documents // batch_size)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            executor.map(self._process_vision_batch, batches)
+            list(executor.map(self._process_vision_batch, batches))
             
         self.burner.stop_burn()
         self.status_message = "COMPLETE: Vision Forensics Concluded."
         self.is_running = False
         return self.findings
+        
+    def stop(self):
+        self.is_running = False
+        self.status_message = "ABORTED"
+        self.burner.stop_burn()

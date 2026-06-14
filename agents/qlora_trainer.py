@@ -31,11 +31,15 @@ class QLoRATrainer:
         
         # 3. TRAINING
         for epoch in range(1, self.total_epochs + 1):
+            if not self.is_training:
+                break
             self.current_epoch = epoch
             self.status_message = f"TRAINING (Epoch {epoch}/{self.total_epochs}): Calculating gradients on {dataset_id}..."
             
             # Simulate processing thousands of rows
             for step in range(1, 101):
+                if not self.is_training:
+                    break
                 time.sleep(0.05) # Training speed
                 with self._lock:
                     # Calculate overall progress percent across all epochs
@@ -67,3 +71,8 @@ class QLoRATrainer:
             executor.submit(self._simulate_qlora_training, dataset_id, model_id)
             
         return "Neural Rewiring Initialized in Background."
+        
+    def stop(self):
+        self.is_training = False
+        self.status_message = "ABORTED"
+        self.burner.stop_burn()
