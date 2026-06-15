@@ -32,7 +32,7 @@ class VisionForensicsEngine:
         with self._lock:
             self.processed_count += batch_size
             
-    def run_mass_forensics(self):
+    def run_mass_forensics(self, skip_gpu=False):
         self.is_running = True
         self.processed_count = 0
         self.findings = []
@@ -41,7 +41,8 @@ class VisionForensicsEngine:
         time.sleep(2)
         
         # Start PyTorch MI300X Hardware Burn-In (35GB VRAM)
-        self.burner.start_burn(target_gb=35)
+        if not skip_gpu:
+            self.burner.start_burn(target_gb=35)
         
         self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
         

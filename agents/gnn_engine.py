@@ -30,7 +30,7 @@ class GNNEngine:
         with self._lock:
             self.processed_nodes += chunk_size
             
-    def run_deep_graph_analytics(self):
+    def run_deep_graph_analytics(self, skip_gpu=False):
         self.is_running = True
         self.processed_nodes = 0
         self.findings = []
@@ -43,7 +43,8 @@ class GNNEngine:
         self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
         
         # Start PyTorch MI300X Hardware Burn-In (35GB VRAM)
-        self.burner.start_burn(target_gb=35)
+        if not skip_gpu:
+            self.burner.start_burn(target_gb=35)
         
         chunk_size = 50000000 # 50 Million node chunks
         chunks = [chunk_size] * (self.total_nodes // chunk_size)

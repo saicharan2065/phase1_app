@@ -33,7 +33,7 @@ class BulkSARGenerator:
             self.processed_count += len(suspects)
             self.results.extend(batch_results)
             
-    def run_bulk_inference(self, suspect_ids, batch_size=32):
+    def run_bulk_inference(self, suspect_ids, batch_size=32, skip_gpu=False):
         self.is_running = True
         self.total_count = len(suspect_ids)
         self.processed_count = 0
@@ -43,7 +43,8 @@ class BulkSARGenerator:
             self._initialize_vram_engine()
             
         # Start PyTorch MI300X Hardware Burn-In (30GB VRAM)
-        self.burner.start_burn(target_gb=30)
+        if not skip_gpu:
+            self.burner.start_burn(target_gb=30)
             
         # Chunk the dataset into batches of 32
         chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]

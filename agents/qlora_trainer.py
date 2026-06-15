@@ -13,7 +13,7 @@ class QLoRATrainer:
         self.status_message = "IDLE"
         self.burner = GPUBurner()
         
-    def _simulate_qlora_training(self, dataset_id, model_id):
+    def _simulate_qlora_training(self, dataset_id, model_id, skip_gpu):
         self.is_training = True
         self.progress_percent = 0
         self.current_epoch = 1
@@ -27,7 +27,8 @@ class QLoRATrainer:
         time.sleep(2)
         
         # Start PyTorch MI300X Hardware Burn-In (30GB VRAM)
-        self.burner.start_burn(target_gb=30)
+        if not skip_gpu:
+            self.burner.start_burn(target_gb=30)
         
         # 3. TRAINING
         for epoch in range(1, self.total_epochs + 1):
@@ -63,12 +64,12 @@ class QLoRATrainer:
         self.status_message = "COMPLETE: Neural Rewiring Finished."
         self.is_training = False
         
-    def start_training(self, dataset_id, model_id):
+    def start_training(self, dataset_id, model_id, skip_gpu=False):
         if self.is_training:
             return "Training is already in progress!"
             
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            executor.submit(self._simulate_qlora_training, dataset_id, model_id)
+            executor.submit(self._simulate_qlora_training, dataset_id, model_id, skip_gpu)
             
         return "Neural Rewiring Initialized in Background."
         
