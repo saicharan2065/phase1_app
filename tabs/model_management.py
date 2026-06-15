@@ -52,6 +52,9 @@ def delete_cached_model(repo_id):
         for repo in cache.repos:
             if repo.repo_id == clean_repo_id:
                 shutil.rmtree(repo.repo_path, ignore_errors=True)
+                global GLOBAL_ACTIVE_MODEL
+                if GLOBAL_ACTIVE_MODEL == clean_repo_id:
+                    GLOBAL_ACTIVE_MODEL = "None Selected"
                 return f"Successfully deleted model: {clean_repo_id}"
         return f"Model {clean_repo_id} not found in cache."
     except Exception as e:

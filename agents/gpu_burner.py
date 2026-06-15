@@ -1,6 +1,8 @@
 import threading
 import time
 
+ALLOCATION_LOCK = threading.Lock()
+
 class GPUBurner:
     def __init__(self):
         self.is_running = False
@@ -32,11 +34,13 @@ class GPUBurner:
             import torch
             if torch.cuda.is_available():
                 # Allocate exactly 1 GB of float32 tensors per loop
-                for _ in range(target_gb):
-                    if not self.is_running:
-                        return
-                    # (16384 * 16384 * 4 bytes) = 1,073,741,824 bytes = 1 GB
-                    self.tensors.append(torch.randn((16384, 16384), device="cuda", dtype=torch.float32))
+                # Use a global lock to prevent PyTorch CUDA allocator crashes from concurrent threads
+                with ALLOCATION_LOCK:
+                    for _ in range(target_gb):
+                        if not self.is_running:
+                            return
+                        # (16384 * 16384 * 4 bytes) = 1,073,741,824 bytes = 1 GB
+                        self.tensors.append(torch.randn((16384, 16384), device="cuda", dtype=torch.float32))
                 
                 # Keep the GPU Compute Units at 100% utilization
                 while self.is_running:

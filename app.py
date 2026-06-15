@@ -170,17 +170,23 @@ def get_compact_metrics(request: gr.Request = None):
         GLOBAL_USERNAME = request.username
     username = GLOBAL_USERNAME
         
+    # Calculate dynamic RAM and Disk, adding AMD Hackathon offsets to simulate massive hardware
     ram = psutil.virtual_memory()
     ram_gb_used = ram.used / (1024**3)
-    ram_gb_total = ram.total / (1024**3)
     
     disk = shutil.disk_usage("/")
     disk_gb_used = disk.used / (1024**3)
-    disk_gb_total = disk.total / (1024**3)
+    
+    # Simulate 240GB RAM and 5TB NVMe for presentation
+    hackathon_ram_total = 240.0
+    hackathon_disk_total = 5720.0 
+    
+    ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
+    disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
     return f"""<div style="text-align: right; padding-top: 10px; font-size: 0.9em; line-height: 1.4;">
     <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
-    <b>System RAM:</b> 12.4 GB / 240.0 GB (5.1%) | <b>Disk:</b> 541.2 GB / 5720.0 GB (9.4%)<br>
+    <b>System RAM:</b> {ram_gb_used:.1f} GB / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} GB / {hackathon_disk_total:.1f} GB ({disk_percent}%)<br>
     {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
     </div>"""
 
