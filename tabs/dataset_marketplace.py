@@ -73,13 +73,17 @@ def create_dataset_marketplace_tab():
     categories = list(dm.category_map.keys()) + ["Custom Hugging Face Dataset"]
     limits = ["100", "1000", "10000", "100000", "1000000", "ALL"]
     
+    # Pre-populate datasets for the first category
+    initial_category = categories[0]
+    initial_datasets = dm.fetch_datasets_by_category(initial_category)
+    
     with gr.Row():
         # Source Panel
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("#### SOURCE DATASET")
-                s_cat = gr.Dropdown(choices=categories, label="Category")
-                s_ds = gr.Dropdown(choices=[], label="Available Datasets")
+                s_cat = gr.Dropdown(choices=categories, value=initial_category, label="Category")
+                s_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets")
                 s_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():
@@ -109,8 +113,8 @@ def create_dataset_marketplace_tab():
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("#### REFERENCE DATASET")
-                r_cat = gr.Dropdown(choices=categories, label="Category")
-                r_ds = gr.Dropdown(choices=[], label="Available Datasets")
+                r_cat = gr.Dropdown(choices=categories, value=initial_category, label="Category")
+                r_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets")
                 r_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():

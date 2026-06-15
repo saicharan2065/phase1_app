@@ -1,9 +1,13 @@
 import gradio as gr
 import threading
+import time
 from tabs.bulk_sar import generator as bulk_engine
 from tabs.qlora_training import trainer as qlora_engine
 from tabs.vision_lab import vision_engine
 from tabs.gnn_topography import gnn_engine
+from agents.gpu_burner import GPUBurner
+
+master_burner = GPUBurner()
 
 def trigger_bulk_sar():
     if not bulk_engine.is_running:
@@ -45,13 +49,12 @@ def stop_gnn():
     return "[STOP] GNN Topography Aborted."
 
 def trigger_all():
-    trigger_bulk_sar()
-    trigger_qlora()
-    trigger_vision()
-    trigger_gnn()
-    return "[☢️] GLOBAL MI300X STRESS TEST EXECUTED! ALL 4 ENGINES RUNNING."
+    # Instead of launching 4 competing processes that crash ROCm, we launch ONE massive 130GB process
+    master_burner.start_burn(130)
+    return "[☢️] GLOBAL MI300X STRESS TEST EXECUTED! 130 GB VRAM TARGETED."
 
 def stop_all():
+    master_burner.stop_burn()
     stop_bulk_sar()
     stop_qlora()
     stop_vision()
