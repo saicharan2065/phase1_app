@@ -64,7 +64,7 @@ class QLoRATrainer:
                 dummy_data = Dataset.from_dict({"text": ["This is a suspicious transaction.", "Normal payroll transfer.", "Potential money laundering detected."]})
                 
                 args = TrainingArguments(
-                    output_dir="storage/adapters",
+                    output_dir=f"storage/adapters/{actual_model.replace('/', '_')}_checkpoints",
                     num_train_epochs=self.total_epochs,
                     per_device_train_batch_size=1,
                     save_steps=10,
@@ -94,7 +94,8 @@ class QLoRATrainer:
                     trainer.train()
                 
                 self.status_message = "SAVING: Writing real PEFT Adapter file..."
-                trainer.model.save_pretrained("storage/adapters/latest_qlora_adapter")
+                save_path = f"storage/adapters/{actual_model.replace('/', '_')}_qlora"
+                trainer.model.save_pretrained(save_path)
                 
             except Exception as e:
                 self.status_message = f"Real QLoRA Failed: {str(e)}. Falling back..."

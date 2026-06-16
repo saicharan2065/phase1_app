@@ -24,6 +24,7 @@ from tabs.qlora_training import create_qlora_tab
 from tabs.vision_lab import create_vision_lab_tab
 from tabs.gnn_topography import create_gnn_topography_tab
 from tabs.mi300x_dashboard import create_mi300x_dashboard_tab
+from tabs.account_settings import create_account_settings_tab
 
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
@@ -207,7 +208,7 @@ def get_compact_metrics(request: gr.Request = None):
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
     return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
-    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'}</span></span>
+    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({'ADMIN' if username and username.lower() == 'admin' else 'STANDARD'})</span></span>
     <span><b>Model:</b> {active_model}</span>
     <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%)</span>
     <span><b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)</span>
@@ -267,6 +268,9 @@ def create_app():
                 with gr.Tab("MI300X Command Center"):
                     create_mi300x_dashboard_tab(session_user)
                     
+                with gr.Tab("Account Settings"):
+                    create_account_settings_tab(session_user)
+                    
                 # New Dataset Marketplace
                 with gr.Tab("Dataset Marketplace"):
                     create_dataset_marketplace_tab(session_user)
@@ -314,7 +318,7 @@ def create_app():
                 with gr.Tab("Alerts"):
                     create_alerts_tab(session_user)
                     
-                with gr.Tab("Reports"):
+                with gr.Tab("Bulk SAR Engine"):
                     create_bulk_sar_tab(session_user)
                     
                 with gr.Tab("QLoRA Studio"):

@@ -101,3 +101,48 @@ def verify_otp(email, otp_code):
     
     del PENDING_OTPS[email]
     return True, "Registration successful. You can now login."
+
+# --- ROLE MANAGEMENT ---
+
+def get_user_role(username):
+    if not username: return "STANDARD"
+    # Hardcode 'admin' username to always be ADMIN for safety
+    if username.lower() == "admin": return "ADMIN"
+    
+    db = _load_db()
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, dict) and record.get("username") == username:
+            return record.get("role", "STANDARD")
+    return "STANDARD"
+
+def request_admin_privilege(username):
+    db = _load_db()
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, dict) and record.get("username") == username:
+            if record.get("role") == "ADMIN":
+                return "You are already an Admin."
+            record["pending_admin"] = True
+            _save_db(db)
+            return "Admin privileges requested. Waiting for approval."
+    return "User not found."
+
+def get_pending_admin_requests():
+    db = _load_db()
+    pending = []
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, dict) and record.get("pending_admin") == True:
+            pending.append(record.get("username", email))
+    return pending if pending else ["No pending requests"]
+
+def approve_admin_request(admin_user, target_user):
+    if get_user_role(admin_user) != "ADMIN":
+        return f"Error: User {admin_user} is not authorized to approve admins."
+        
+    db = _load_db()
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, dict) and record.get("username") == target_user:
+            record["role"] = "ADMIN"
+            record["pending_admin"] = False
+            _save_db(db)
+            return f"Successfully granted Admin privileges to {target_user}."
+    return "Target user not found."
