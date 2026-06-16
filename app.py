@@ -228,7 +228,7 @@ def create_app():
                     reg_status = gr.Textbox(label="Status", interactive=False)
                     
                     gr.Markdown("---")
-                    otp_code = gr.Textbox(label="Enter 6-digit OTP (Check Terminal Console)")
+                    otp_code = gr.Textbox(label="Enter 6-digit OTP (Check your Email Inbox)")
                     ver_btn = gr.Button("Verify & Register", variant="primary")
                     ver_status = gr.Textbox(label="Verification Status", interactive=False)
                     
@@ -237,7 +237,10 @@ def create_app():
                 with gr.Column(scale=3):
                     gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
                 with gr.Column(scale=1):
-                    global_metrics = gr.HTML(get_compact_metrics())
+                    with gr.Row():
+                        global_metrics = gr.HTML(get_compact_metrics())
+                        logout_btn = gr.Button("Logout", variant="secondary", size="sm")
+                    
                     refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
                     refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
                     app.load(fn=get_compact_metrics, outputs=global_metrics)
@@ -245,69 +248,69 @@ def create_app():
                     # Setup live refreshing for Gradio 4.0+
                     timer = gr.Timer(2)
                     timer.tick(fn=get_compact_metrics, outputs=global_metrics)
-        
-        with gr.Tabs():
-            # Hackathon Presentation Dashboard
-            with gr.Tab("MI300X Command Center"):
-                create_mi300x_dashboard_tab()
-                
-            # New Dataset Marketplace
-            with gr.Tab("Dataset Marketplace"):
-                create_dataset_marketplace_tab()
-                
-            # Phase 1
-            with gr.Tab("Local Data Sources"):
-                create_data_sources_tab()
-                
-            with gr.Tab("Reference Validation"):
-                create_reference_validation_tab()
-                
-            with gr.Tab("Model Management"):
-                create_model_management_tab()
-                
-            # Phase 2
-            with gr.Tab("Schema Discovery"):
-                create_schema_discovery_tab()
-                
-            with gr.Tab("Entity Resolution"):
-                create_entity_resolution_tab()
-                
-            with gr.Tab("Entity Graph"):
-                create_entity_graph_tab()
-                
-            with gr.Tab("Data Quality"):
-                create_data_quality_tab()
-                
-            # Phase 3
-            with gr.Tab("Fraud Detection"):
-                create_fraud_detection_tab()
-                
-            with gr.Tab("AML Detection"):
-                create_aml_detection_tab()
-                
-            with gr.Tab("Risk Clusters"):
-                create_risk_clusters_tab()
-                
-            with gr.Tab("Investigations"):
-                create_investigations_tab()
-                
-            with gr.Tab("Case Management"):
-                create_case_management_tab()
-                
-            with gr.Tab("Alerts"):
-                create_alerts_tab()
-                
-            with gr.Tab("Reports"):
-                create_bulk_sar_tab()
-                
-            with gr.Tab("QLoRA Studio"):
-                create_qlora_tab()
-                
-            with gr.Tab("MI300X Vision Lab"):
-                create_vision_lab_tab()
-                
-            with gr.Tab("MI300X GNN Engine"):
-                create_gnn_topography_tab()
+            
+            with gr.Tabs():
+                # Hackathon Presentation Dashboard
+                with gr.Tab("MI300X Command Center"):
+                    create_mi300x_dashboard_tab()
+                    
+                # New Dataset Marketplace
+                with gr.Tab("Dataset Marketplace"):
+                    create_dataset_marketplace_tab()
+                    
+                # Phase 1
+                with gr.Tab("Local Data Sources"):
+                    create_data_sources_tab()
+                    
+                with gr.Tab("Reference Validation"):
+                    create_reference_validation_tab()
+                    
+                with gr.Tab("Model Management"):
+                    create_model_management_tab()
+                    
+                # Phase 2
+                with gr.Tab("Schema Discovery"):
+                    create_schema_discovery_tab()
+                    
+                with gr.Tab("Entity Resolution"):
+                    create_entity_resolution_tab()
+                    
+                with gr.Tab("Entity Graph"):
+                    create_entity_graph_tab()
+                    
+                with gr.Tab("Data Quality"):
+                    create_data_quality_tab()
+                    
+                # Phase 3
+                with gr.Tab("Fraud Detection"):
+                    create_fraud_detection_tab()
+                    
+                with gr.Tab("AML Detection"):
+                    create_aml_detection_tab()
+                    
+                with gr.Tab("Risk Clusters"):
+                    create_risk_clusters_tab()
+                    
+                with gr.Tab("Investigations"):
+                    create_investigations_tab()
+                    
+                with gr.Tab("Case Management"):
+                    create_case_management_tab()
+                    
+                with gr.Tab("Alerts"):
+                    create_alerts_tab()
+                    
+                with gr.Tab("Reports"):
+                    create_bulk_sar_tab()
+                    
+                with gr.Tab("QLoRA Studio"):
+                    create_qlora_tab()
+                    
+                with gr.Tab("MI300X Vision Lab"):
+                    create_vision_lab_tab()
+                    
+                with gr.Tab("MI300X GNN Engine"):
+                    create_gnn_topography_tab()
                 
             # Global floating chatbot
             create_chatbot_tab()
@@ -332,6 +335,13 @@ def create_app():
         log_btn.click(fn=handle_login, inputs=[log_email, log_pass], outputs=[auth_view, os_view, session_user]).then(
             fn=lambda msg: msg if not msg else "Login Failed", inputs=session_user, outputs=log_status
         )
+        
+        def handle_logout():
+            global GLOBAL_USERNAME
+            GLOBAL_USERNAME = "GUEST"
+            return gr.update(visible=True), gr.update(visible=False), "", "Logged out successfully"
+            
+        logout_btn.click(fn=handle_logout, outputs=[auth_view, os_view, session_user, log_status])
         
         req_btn.click(fn=handle_request, inputs=[reg_email, reg_pass], outputs=reg_status)
         ver_btn.click(fn=handle_verify, inputs=[reg_email, otp_code], outputs=ver_status)
