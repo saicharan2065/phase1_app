@@ -29,8 +29,8 @@ class QLoRATrainer:
             from trl import SFTTrainer
             from datasets import Dataset
             has_libraries = True
-        except ImportError:
-            self.status_message = "ERROR: Required libraries (peft, trl, bitsandbytes) not found. Falling back to simulation."
+        except ImportError as e:
+            raise RuntimeError(f"CRITICAL ERROR: Required ML libraries missing. {str(e)}")
             
         if has_libraries:
             try:
@@ -98,44 +98,13 @@ class QLoRATrainer:
                 trainer.model.save_pretrained(save_path)
                 
             except Exception as e:
-                self.status_message = f"Real QLoRA Failed: {str(e)}. Falling back..."
-                has_libraries = False
+                self.is_training = False
+                raise RuntimeError(f"Real QLoRA Training Failed: {str(e)}")
                 
-        if not has_libraries:
-            # Fallback to simulation
-            time.sleep(3)
-            self.status_message = "FREEZING: Locking 131 Billion Base Parameters. Attaching Blank LoRA Adapter..."
-            time.sleep(2)
-            
-            if not skip_gpu:
-                self.burner.start_burn(target_gb=30)
-            
-            for epoch in range(1, self.total_epochs + 1):
-                if not self.is_training:
-                    break
-                self.current_epoch = epoch
-                self.status_message = f"TRAINING (Epoch {epoch}/{self.total_epochs}): Calculating gradients on {dataset_id}..."
-                
-                for step in range(1, 101):
-                    if not self.is_training:
-                        break
-                    time.sleep(0.05) 
-                    with self._lock:
-                        base_progress = ((epoch - 1) / self.total_epochs) * 100
-                        step_progress = (step / 100) * (100 / self.total_epochs)
-                        self.progress_percent = int(base_progress + step_progress)
-                        
-            self.status_message = "SAVING: Writing 500MB Adapter file to local storage/adapters/ directory..."
-            time.sleep(2)
-            import os
-            os.makedirs("storage/adapters", exist_ok=True)
-            with open("storage/adapters/latest_qlora_adapter.bin", "w") as f:
-                f.write(f"Trained on {dataset_id} using {model_id}")
-            
         # 5. DEMOUNTING
-        self.status_message = "DEMOUNTING: Purging VRAM. Freeing 50GB memory..."
+        self.status_message = "DEMOUNTING: Purging VRAM. Freeing memory..."
         self.burner.stop_burn()
-        time.sleep(2)
+        time.sleep(1)
         
         self.status_message = "COMPLETE: Neural Rewiring Finished."
         self.is_training = False

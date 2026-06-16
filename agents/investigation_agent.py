@@ -22,37 +22,30 @@ class InvestigationAgent:
         if aml_score > 50: risk_factors.append(f"High AML Score ({aml_score})")
         if len(connected_entities) > 5: risk_factors.append(f"High number of shared connections ({len(connected_entities)})")
         
-        summary = f"Investigation for {customer_id} completed. "
+        summary = f"Investigation for {suspect_id} completed. "
         if not risk_factors:
             summary += "No significant anomalies detected."
         else:
             summary += "Multiple high-risk signals present requiring manual review."
             
-        markdown_report = f"""# 🤖 DeepSeek-R1 Automated Investigation Report
-**Entity Analyzed:** `{suspect_id}`
-
-## 🔍 Context & Link Analysis
-"""
-        if connected_entities:
-            markdown_report += f"The entity is connected to **{len(connected_entities)}** other nodes within the graph network. Key structural edges detected:\n"
-            for rel in relationships[:5]:
-                markdown_report += f"- `{rel}`\n"
-        else:
-            markdown_report += "No immediate graph connections detected in the local cache.\n"
-
-        markdown_report += "\n## ⚠️ Risk Assessment\n"
-        if risk_factors:
-            markdown_report += "The agent has flagged the following critical anomalies:\n"
-            for rf in risk_factors:
-                markdown_report += f"- **CRITICAL:** {rf}\n"
-        else:
-            markdown_report += "No severe risk anomalies flagged based on current feature weights.\n"
+        try:
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
             
-        markdown_report += "\n## ⚖️ Final LLM Conclusion\n"
-        if not risk_factors:
-            markdown_report += f"> The mathematical embedding of `{suspect_id}` does not resemble known historical fraud topologies. **Recommendation:** Proceed with standard monitoring."
-        else:
-            markdown_report += f"> The structural and behavioral footprint of `{suspect_id}` strongly correlates with sophisticated obfuscation techniques. **Recommendation:** Freeze assets and escalate to human review immediately."
+            model_id = "Qwen/Qwen1.5-0.5B"
+            tokenizer = AutoTokenizer.from_pretrained(model_id)
+            model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
+            
+            prompt = f"Write a detailed forensic investigation report for suspect {suspect_id}. They have the following risk factors: {', '.join(risk_factors)}. Start the report with a markdown header."
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+            
+            with torch.no_grad():
+                outputs = model.generate(**inputs, max_new_tokens=300, temperature=0.7)
+                
+            markdown_report = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            
+        except Exception as e:
+            raise RuntimeError(f"MI300X REAL LLM INFERENCE FAILED: {str(e)}")
 
         # Persist automatically to storage/investigations
         os.makedirs("storage/investigations", exist_ok=True)

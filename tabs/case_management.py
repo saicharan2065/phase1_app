@@ -22,30 +22,35 @@ def run_debate(case_id):
         yield "Please provide a Case ID.", "", ""
         return
         
-    pros_text = f"**Prosecutor Analysis for {case_id}:**\n\nThe mathematical topography of this entity's transaction network clearly indicates obfuscation. The velocity of funds moving through shell nodes is characteristic of layering in money laundering. I strongly recommend freezing the accounts."
-    def_text = f"**Defense Analysis for {case_id}:**\n\nI disagree. The transaction velocity correlates with standard e-commerce merchant batch processing. The 'shell nodes' identified by the Prosecutor are actually verified third-party payment gateways. Freezing these assets could result in severe business interruption lawsuits."
-    judge_text = f"**Final Verdict for {case_id}:**\n\n> **INCONCLUSIVE - ESCALATE TO HUMAN**\n> The Defense has provided a valid counter-hypothesis regarding payment gateways. A human agent must manually verify the KYC documents of the third-party processors before freezing assets."
-
-    p_out, d_out, j_out = "", "", ""
-    import time
-    
-    # Stream Prosecutor
-    for chunk in pros_text.split(" "):
-        p_out += chunk + " "
-        yield p_out, d_out, j_out
-        time.sleep(0.05)
+    try:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
         
-    # Stream Defense
-    for chunk in def_text.split(" "):
-        d_out += chunk + " "
-        yield p_out, d_out, j_out
-        time.sleep(0.05)
+        model_id = "Qwen/Qwen1.5-0.5B"
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
         
-    # Stream Judge
-    for chunk in judge_text.split(" "):
-        j_out += chunk + " "
+        # We will generate them sequentially
+        yield "Thinking...", "Thinking...", "Thinking..."
+        
+        def run_llm(prompt_text):
+            inputs = tokenizer(prompt_text, return_tensors="pt").to(model.device)
+            with torch.no_grad():
+                outputs = model.generate(**inputs, max_new_tokens=100, temperature=0.7)
+            return tokenizer.decode(outputs[0], skip_special_tokens=True).replace(prompt_text, "").strip()
+            
+        p_out = run_llm(f"Act as a Financial Prosecutor. Explain why Case {case_id} is guilty of money laundering.")
+        yield p_out, "Thinking...", "Thinking..."
+        
+        d_out = run_llm(f"Act as a Defense Attorney. Read the Prosecutor's argument and defend Case {case_id}: {p_out}")
+        yield p_out, d_out, "Thinking..."
+        
+        j_out = run_llm(f"Act as a Judge. Read the Prosecutor's argument: '{p_out}' and Defense's argument: '{d_out}'. Deliver a final verdict.")
         yield p_out, d_out, j_out
-        time.sleep(0.05)
+        
+    except Exception as e:
+        err = f"🛑 CRITICAL LLM EXECUTION ERROR: {str(e)}"
+        yield err, err, err
 
 def create_case_management_tab(session_user=None):
     gr.Markdown("### Case Management")

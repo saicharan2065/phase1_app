@@ -64,20 +64,10 @@ class GNNEngine:
             with self._lock:
                 self.processed_nodes += chunk_size
                 
-        except ImportError:
-            # Fallback
-            time.sleep(0.8) 
-            import random
-            if random.random() < 0.2:
-                with self._lock:
-                    self.findings.append({
-                        "Sub-Graph ID": f"CLUSTER_{random.randint(1000, 9999)}",
-                        "Topology": "Bipartite Laundering Ring (Simulated)",
-                        "Anomalous Nodes": random.randint(15, 50)
-                    })
-                    
-            with self._lock:
-                self.processed_nodes += chunk_size
+        except ImportError as e:
+            raise RuntimeError(f"CRITICAL ERROR: torch_geometric libraries missing. {str(e)}")
+        except Exception as e:
+            raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
             
     def run_deep_graph_analytics(self, skip_gpu=False):
         self.is_running = True
@@ -86,7 +76,6 @@ class GNNEngine:
         
         # Phase 1: Construct Adjacency Matrix in RAM
         self.status_message = "RAM ALLOCATION: Constructing 500M Node Adjacency Matrix in 240GB System RAM..."
-        time.sleep(4)
         
         # Phase 2: Compute in VRAM
         self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."

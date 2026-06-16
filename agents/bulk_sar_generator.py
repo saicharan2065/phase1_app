@@ -32,12 +32,12 @@ class BulkSARGenerator:
             )
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
-        except ImportError:
-            self.status_message = "Transformers/PyTorch not installed. Falling back to simulation."
+        except ImportError as e:
             self.model_loaded = False
+            raise RuntimeError(f"CRITICAL ERROR: Transformers/PyTorch libraries are missing from the environment. Real pipeline cannot execute! Details: {str(e)}")
         except Exception as e:
-            self.status_message = f"Failed to mount real LLM: {str(e)}. Falling back to simulation."
             self.model_loaded = False
+            raise RuntimeError(f"MI300X VRAM MOUNT FAILURE: {str(e)}")
             
     def _process_batch(self, suspects):
         """Real GPU batch inference on a chunk of suspects using Hugging Face."""
@@ -61,15 +61,9 @@ class BulkSARGenerator:
                 for i, report in enumerate(decoded_reports):
                     batch_results.append({"Suspect ID": suspects[i], "SAR Report": report.replace(prompts[i], "").strip(), "Risk Level": "HIGH"})
             except Exception as e:
-                batch_results.append({"Suspect ID": suspects[0], "SAR Report": f"Real Inference Failed: {str(e)}", "Risk Level": "ERROR"})
+                raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
         else:
-            # Fallback mock if they didn't have dependencies
-            for suspect in suspects:
-                if not self.is_running:
-                    break
-                time.sleep(0.15) 
-                report = f"DeepSeek VRAM Engine analyzed {suspect}. Verified transaction velocity against known AML typologies."
-                batch_results.append({"Suspect ID": suspect, "SAR Report": report, "Risk Level": "MODERATE"})
+            raise RuntimeError("Cannot process batch. MI300X VRAM model is not mounted.")
             
         with self._lock:
             self.processed_count += len(suspects)
@@ -92,13 +86,9 @@ class BulkSARGenerator:
         chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]
         
         # We process sequentially if using real model to prevent OOM
-        if self.model_loaded:
-            for chunk in chunks:
-                if not self.is_running: break
-                self._process_batch(chunk)
-        else:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                list(executor.map(self._process_batch, chunks))
+        for chunk in chunks:
+            if not self.is_running: break
+            self._process_batch(chunk)
             
         self.burner.stop_burn()
         self.is_running = False

@@ -55,32 +55,21 @@ def trigger_all(target_dataset, session_user):
     if user_role != "ADMIN":
         return f"[🛑 GUARDRAIL] UNAUTHORIZED: User '{session_user}' lacks Admin privileges to trigger Global Stress Test."
         
-    # Instead of launching 4 competing processes that crash ROCm, we launch ONE massive 130GB process
-    master_burner.start_burn(130)
+    # Launch ALL 4 models concurrently into VRAM (Requires massive hardware, which the user has)
     
-    # Start UI threads without spawning additional PyTorch subprocesses
+    # Start UI threads with REAL hardware execution!
     if not bulk_engine.is_running:
-        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, True)).start()
+        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False)).start()
     if not qlora_engine.is_training:
-        qlora_engine.start_training("gretelai/synthetic_pii_finance", "DeepSeek-70B", skip_gpu=True)
+        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", "DeepSeek-70B", False)).start()
     if not vision_engine.is_running:
-        threading.Thread(target=vision_engine.run_mass_forensics, args=(True,)).start()
+        threading.Thread(target=vision_engine.run_mass_forensics, args=(False,)).start()
     if not gnn_engine.is_running:
-        threading.Thread(target=gnn_engine.run_deep_graph_analytics, args=(True,)).start()
+        threading.Thread(target=gnn_engine.run_deep_graph_analytics, args=(False,)).start()
         
-    # Launch a monitor thread to automatically stop the Master GPU process when all UI tasks complete
-    def monitor_all_completion():
-        time.sleep(2) # Give threads a moment to initialize
-        while bulk_engine.is_running or qlora_engine.is_training or vision_engine.is_running or gnn_engine.is_running:
-            time.sleep(1)
-        master_burner.stop_burn()
+    return f"[☢️] GLOBAL MI300X STRESS TEST EXECUTED ON '{target_dataset}'! REAL HARDWARE PIPELINES LAUNCHED."
         
-    threading.Thread(target=monitor_all_completion).start()
-        
-    return f"[☢️] GLOBAL MI300X STRESS TEST EXECUTED ON '{target_dataset}'! 130 GB VRAM TARGETED."
-
 def stop_all():
-    master_burner.stop_burn()
     stop_bulk_sar()
     stop_qlora()
     stop_vision()

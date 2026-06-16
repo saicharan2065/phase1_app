@@ -28,9 +28,12 @@ class VisionForensicsEngine:
             self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
-        except Exception as e:
-            self.status_message = f"Failed to mount real VLM: {str(e)}. Falling back to simulation."
+        except ImportError as e:
             self.model_loaded = False
+            raise RuntimeError(f"CRITICAL ERROR: Transformers/PyTorch libraries missing. {str(e)}")
+        except Exception as e:
+            self.model_loaded = False
+            raise RuntimeError(f"MI300X VRAM MOUNT FAILURE: {str(e)}")
 
     def _process_vision_batch(self, batch_size):
         """Real MI300X processing using VLM."""
@@ -55,19 +58,9 @@ class VisionForensicsEngine:
                             "Details": "Real VLM pixel manipulation detected."
                         })
             except Exception as e:
-                self.findings.append({"Document ID": "ERROR", "Status": "FAIL", "Details": str(e)})
+                raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
         else:
-            time.sleep(0.5) # Simulate massive GPU matrix multiplication
-            import random
-            for _ in range(batch_size):
-                if not self.is_running:
-                    break
-                if random.random() < 0.005: # 0.5% fraud rate
-                    self.findings.append({
-                        "Document ID": f"DOC_{random.randint(10000, 99999)}",
-                        "Status": "DEEP-FAKE DETECTED",
-                        "Details": "Pixel manipulation detected near portrait edges."
-                    })
+            raise RuntimeError("Cannot process batch. MI300X VRAM model is not mounted.")
                 
         with self._lock:
             self.processed_count += batch_size
