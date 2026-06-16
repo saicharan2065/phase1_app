@@ -178,8 +178,10 @@ def get_compact_metrics(request: gr.Request = None):
     try:
         import torch
         if torch.cuda.is_available():
-            vram_used = torch.cuda.memory_allocated() / (1024**3)
-            vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+            # memory_allocated only tracks active tensors. mem_get_info tracks the entire physical GPU.
+            free_mem, total_mem = torch.cuda.mem_get_info()
+            vram_used = (total_mem - free_mem) / (1024**3)
+            vram_total = total_mem / (1024**3)
         else:
             vram_used = 0.0
             vram_total = 192.0
