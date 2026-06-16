@@ -28,7 +28,8 @@ class BulkSARGenerator:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 device_map="auto",
-                torch_dtype=torch.float16
+                torch_dtype=torch.float16,
+                use_safetensors=True
             )
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."

@@ -37,7 +37,7 @@ class InvestigationAgent:
             model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
             
             tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-            model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, trust_remote_code=True, use_safetensors=True)
             
             prompt = f"Write a detailed forensic investigation report for suspect {suspect_id}. They have the following risk factors: {', '.join(risk_factors)}. Start the report with a markdown header."
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)

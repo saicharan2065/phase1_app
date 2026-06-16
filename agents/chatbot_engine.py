@@ -26,7 +26,8 @@ class ChatbotEngine:
                 model_id, 
                 device_map="auto", 
                 torch_dtype=torch.float16,
-                trust_remote_code=True
+                trust_remote_code=True,
+                use_safetensors=True
             )
             
             _LOADED_MODEL_ID = model_id

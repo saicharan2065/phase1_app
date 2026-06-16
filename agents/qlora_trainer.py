@@ -24,7 +24,7 @@ class QLoRATrainer:
         has_libraries = False
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+            from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
             from peft import LoraConfig, get_peft_model
             from trl import SFTTrainer
             from datasets import Dataset
@@ -44,10 +44,13 @@ class QLoRATrainer:
                 tokenizer = AutoTokenizer.from_pretrained(actual_model)
                 tokenizer.pad_token = tokenizer.eos_token
                 
+                bnb_config = BitsAndBytesConfig(load_in_4bit=True)
+                
                 model = AutoModelForCausalLM.from_pretrained(
                     actual_model,
+                    quantization_config=bnb_config,
                     device_map="auto",
-                    torch_dtype=torch.float16
+                    use_safetensors=True
                 )
                 
                 lora_config = LoraConfig(

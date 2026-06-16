@@ -25,7 +25,7 @@ class VisionForensicsEngine:
             model_id = "Salesforce/blip-image-captioning-base"
             
             self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = BlipForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
+            self.model = BlipForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, use_safetensors=True)
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
         except ImportError as e:
