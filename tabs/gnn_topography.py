@@ -6,7 +6,7 @@ from agents.gnn_engine import GNNEngine
 
 gnn_engine = GNNEngine()
 
-def run_gnn_analytics():
+def run_gnn_analytics(dataset_key, file):
     if gnn_engine.is_running:
         yield "Already computing...", pd.DataFrame()
         return
@@ -44,11 +44,21 @@ def create_gnn_topography_tab():
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("#### Global Financial Graph")
-            gr.Markdown("**Input Target:** `5TB NVMe Global Ledger DB`")
+            gr.Markdown("**Input Target:** 5TB NVMe Global Ledger DB")
+            
+            with gr.Row():
+                from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Select Workspace Dataset", scale=4)
+                refresh_btn = gr.Button("↻", size="sm", scale=1)
+                
+            ds_upload = gr.File(label="Or Upload Direct File")
+            
             start_btn = gr.Button("🚀 Launch 500M Node GNN", variant="primary")
+            
+            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
             status_out = gr.Textbox(label="GNN Telemetry", lines=4, interactive=False)
             
         with gr.Column(scale=2):
             results_table = gr.Dataframe(label="Anomalous Topology Clusters Discovered", max_height=300)
             
-    start_btn.click(fn=run_gnn_analytics, outputs=[status_out, results_table])
+    start_btn.click(fn=run_gnn_analytics, inputs=[ds_dropdown, ds_upload], outputs=[status_out, results_table])

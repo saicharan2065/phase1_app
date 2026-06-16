@@ -4,6 +4,7 @@ import shutil
 from tabs.data_sources import create_data_sources_tab
 from tabs.reference_validation import create_reference_validation_tab
 from tabs.model_management import create_model_management_tab
+from agents import auth_engine
 
 # Phase 2 imports
 from tabs.schema_discovery import create_schema_discovery_tab
@@ -208,8 +209,32 @@ def get_compact_metrics(request: gr.Request = None):
 
 def create_app():
     with gr.Blocks(title="Financial Crime OS") as app:
-        with gr.Row():
-            with gr.Column(scale=3):
+        # State to store active user
+        session_user = gr.State("")
+        
+        with gr.Group(visible=True) as auth_view:
+            gr.Markdown("# 🔐 Antigravity OS - Secure Gateway")
+            with gr.Tabs():
+                with gr.Tab("Login"):
+                    log_email = gr.Textbox(label="Email")
+                    log_pass = gr.Textbox(label="Password", type="password")
+                    log_btn = gr.Button("Login", variant="primary")
+                    log_status = gr.Textbox(label="Status", interactive=False)
+                    
+                with gr.Tab("Register (OTP)"):
+                    reg_email = gr.Textbox(label="Email")
+                    reg_pass = gr.Textbox(label="Password", type="password")
+                    req_btn = gr.Button("Request OTP")
+                    reg_status = gr.Textbox(label="Status", interactive=False)
+                    
+                    gr.Markdown("---")
+                    otp_code = gr.Textbox(label="Enter 6-digit OTP (Check Terminal Console)")
+                    ver_btn = gr.Button("Verify & Register", variant="primary")
+                    ver_status = gr.Textbox(label="Verification Status", interactive=False)
+                    
+        with gr.Group(visible=False) as os_view:
+            with gr.Row():
+                with gr.Column(scale=3):
                 gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
             with gr.Column(scale=1):
                 global_metrics = gr.HTML(get_compact_metrics())
@@ -284,19 +309,35 @@ def create_app():
             with gr.Tab("MI300X GNN Engine"):
                 create_gnn_topography_tab()
                 
-        # Global floating chatbot
-        create_chatbot_tab()
+            # Global floating chatbot
+            create_chatbot_tab()
+            
+        # Auth Logic Connections
+        def handle_login(email, password):
+            success, msg = auth_engine.login_user(email, password)
+            if success:
+                global GLOBAL_USERNAME
+                GLOBAL_USERNAME = email.split('@')[0]
+                return gr.update(visible=False), gr.update(visible=True), email
+            return gr.update(visible=True), gr.update(visible=False), ""
+            
+        def handle_request(email, password):
+            success, msg = auth_engine.request_otp(email, password)
+            return msg
+            
+        def handle_verify(email, otp):
+            success, msg = auth_engine.verify_otp(email, otp)
+            return msg
+            
+        log_btn.click(fn=handle_login, inputs=[log_email, log_pass], outputs=[auth_view, os_view, session_user]).then(
+            fn=lambda msg: msg if not msg else "Login Failed", inputs=session_user, outputs=log_status
+        )
+        
+        req_btn.click(fn=handle_request, inputs=[reg_email, reg_pass], outputs=reg_status)
+        ver_btn.click(fn=handle_verify, inputs=[reg_email, otp_code], outputs=ver_status)
                 
     return app
 
-def auth_check(username, password):
-    valid_users = {
-        "admin": "admin123",
-        "agent1": "agent123",
-        "agent2": "agent123"
-    }
-    return username in valid_users and valid_users[username] == password
-
 if __name__ == "__main__":
     app = create_app()
-    app.launch(theme=compact_theme, css=css_override, auth=auth_check, auth_message="Financial Crime OS - Please log in (admin/admin123 or agent1/agent123)")
+    app.launch(theme=compact_theme, css=css_override)

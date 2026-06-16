@@ -40,22 +40,8 @@ def create_alerts_tab():
                 trigger_btn = gr.Button("Dispatch Alert to User", variant="primary")
             
             alerts_df = gr.Dataframe(label="Alerts Database", value=refresh_alerts)
-            trigger_btn.click(fn=generate_mock_alert, inputs=[ent_id, level, target_email], outputs=alerts_df)
-            
         with gr.Column(scale=1):
-            gr.Markdown("### Agent SMTP Profile")
-            gr.Markdown("Configure the centralized Agent Email Account used to dispatch alerts. The system will automatically discover the underlying server (Gmail/Office365).")
+            gr.Markdown("### Agent Configuration")
+            gr.Markdown("Alert dispatch logic has been centralized. SMTP profiles are now handled by the secure authentication gateway.")
             
-            smtp_email = gr.Textbox(label="Agent Sender Email (MUST exactly match the backend App Password)")
-            
-            with gr.Row():
-                save_btn = gr.Button("Save Agent Configuration")
-                test_btn = gr.Button("Test Connection", variant="secondary")
-                
-            smtp_status = gr.Textbox(label="SMTP Status", interactive=False)
-            
-            em = load_smtp_ui()
-            smtp_email.value = em
-            
-            save_btn.click(fn=save_smtp, inputs=[smtp_email], outputs=smtp_status)
-            test_btn.click(fn=test_smtp, outputs=smtp_status)
+    trigger_btn.click(fn=generate_mock_alert, inputs=[ent_id, level, target_email], outputs=alerts_df)
