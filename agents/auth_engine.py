@@ -146,13 +146,13 @@ def request_admin_privilege(username, base_url="http://127.0.0.1:7860"):
             try:
                 msg = MIMEMultipart()
                 msg["From"] = "pocof72065@gmail.com"
-                msg["To"] = email
+                msg["To"] = "pocof72065@gmail.com"
                 msg["Subject"] = "Admin Privilege Approval Link"
                 
                 # Dynamic URL
                 link = f"{base_url}/?approve_admin={username}&token={token}"
                 
-                body = f"Hello {username},\n\nYou requested Admin privileges on the Financial Crime OS.\n\nClick the following link to authorize the upgrade:\n{link}\n\nDo not share this link."
+                body = f"Hello Super Admin,\n\nThe user '{username}' ({email}) has requested Admin privileges on the Financial Crime OS.\n\nClick the following link to authorize the upgrade:\n{link}\n\nDo not share this link."
                 msg.attach(MIMEText(body, "plain"))
                 
                 with smtplib.SMTP("smtp.gmail.com", 587) as server:
@@ -160,8 +160,8 @@ def request_admin_privilege(username, base_url="http://127.0.0.1:7860"):
                     server.login("pocof72065@gmail.com", "mwep jrif xapl somt")
                     server.send_message(msg)
                     
-                print(f"\n🔐 SECURITY: Admin approval link sent to {email} via SMTP.\n")
-                return f"Secure approval link sent to {email}. Click the link to upgrade."
+                print(f"\n🔐 SECURITY: Admin approval link sent to pocof72065@gmail.com via SMTP.\n")
+                return f"Secure approval link sent to the System Administrator. Waiting for their approval."
             except Exception as e:
                 return f"SMTP Error sending approval link: {str(e)}"
                 
