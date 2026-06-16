@@ -83,7 +83,9 @@ def create_dataset_marketplace_tab():
             with gr.Group():
                 gr.Markdown("#### SOURCE DATASET")
                 s_cat = gr.Dropdown(choices=categories, value=initial_category, label="Category")
-                s_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets")
+                with gr.Row():
+                    s_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets", scale=4)
+                    s_refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
                 s_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():
@@ -97,6 +99,7 @@ def create_dataset_marketplace_tab():
             s_df_state = gr.State()
             
             s_cat.change(update_dataset_choices, inputs=s_cat, outputs=[s_ds, s_custom])
+            s_refresh_btn.click(update_dataset_choices, inputs=s_cat, outputs=[s_ds, s_custom])
             s_limit.change(update_estimates, inputs=s_limit, outputs=s_est)
             
             s_load_btn.click(
@@ -114,7 +117,9 @@ def create_dataset_marketplace_tab():
             with gr.Group():
                 gr.Markdown("#### REFERENCE DATASET")
                 r_cat = gr.Dropdown(choices=categories, value=initial_category, label="Category")
-                r_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets")
+                with gr.Row():
+                    r_ds = gr.Dropdown(choices=initial_datasets, value=initial_datasets[0] if initial_datasets else None, label="Available Datasets", scale=4)
+                    r_refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
                 r_custom = gr.Textbox(label="Custom Dataset ID", visible=False)
                 
                 with gr.Row():
@@ -128,6 +133,7 @@ def create_dataset_marketplace_tab():
             r_df_state = gr.State()
             
             r_cat.change(update_dataset_choices, inputs=r_cat, outputs=[r_ds, r_custom])
+            r_refresh_btn.click(update_dataset_choices, inputs=r_cat, outputs=[r_ds, r_custom])
             r_limit.change(update_estimates, inputs=r_limit, outputs=r_est)
             
             r_load_btn.click(

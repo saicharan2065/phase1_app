@@ -4,6 +4,9 @@ from huggingface_hub import HfApi
 from datasets import load_dataset
 import pandas as pd
 
+# Global Memory Registry for files uploaded via Local Data Sources tab
+GLOBAL_WORKSPACE_DATA = {}
+
 class DatasetManager:
     def __init__(self, cache_dir="storage/datasets_cache"):
         self.cache_dir = cache_dir
@@ -13,6 +16,7 @@ class DatasetManager:
         # Hardcoded specific dataset mappings for our enterprise categories
         # as HuggingFace search can be noisy
         self.category_map = {
+            "Local Workspace Data": [], # Dynamically pulled from GLOBAL_WORKSPACE_DATA
             "AML & Financial Fraud": ['dvilasuero/banking_with_vectors', 'zeroshot/twitter-financial-news-sentiment'],
             "Customer Profiles & KYC": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
             "Synthetic Transactions": ['gretelai/synthetic_pii_finance_multilingual']
@@ -22,6 +26,9 @@ class DatasetManager:
         """Return a list of dataset IDs for a given category."""
         if category == "Custom Hugging Face Dataset":
             return []
+            
+        if category == "Local Workspace Data":
+            return list(GLOBAL_WORKSPACE_DATA.keys())
             
         # For a real application, we might search HF using self.api.list_datasets()
         # but for reliability we use our curated list.
@@ -46,9 +53,16 @@ class DatasetManager:
         limit_str can be '100', '1000', '10000', '100000', '1000000', or 'ALL'
         """
         try:
-            # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
             limit = None if limit_str == "ALL" else int(limit_str)
             
+            # If dataset is locally uploaded, serve it from RAM
+            if dataset_id in GLOBAL_WORKSPACE_DATA:
+                df = GLOBAL_WORKSPACE_DATA[dataset_id]
+                if limit:
+                    return df.head(limit)
+                return df
+
+            # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
             # Load dataset lazily without hardcoded split
             ds_dict = load_dataset(dataset_id, streaming=True, cache_dir=self.cache_dir)
             split_name = list(ds_dict.keys())[0]

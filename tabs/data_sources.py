@@ -2,31 +2,50 @@ import gradio as gr
 import pandas as pd
 import random
 
+from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+
 def load_hf_dataset(dataset_name):
     if not dataset_name:
         return "Please enter a dataset name."
-    return f"Successfully loaded Hugging Face Dataset: {dataset_name} (Mocked)"
+    try:
+        from datasets import load_dataset
+        ds = load_dataset(dataset_name, split="train")
+        df = ds.to_pandas()
+        GLOBAL_WORKSPACE_DATA[dataset_name] = df
+        return f"Successfully loaded Hugging Face Dataset: {dataset_name} ({len(df)} rows)"
+    except Exception as e:
+        return f"Failed to load dataset: {e}"
 
 def upload_file(file):
     if file is None:
         return "No file uploaded."
-    return f"Successfully uploaded file: {file.name}"
+    try:
+        import os
+        filename = os.path.basename(file.name)
+        if filename.endswith(".csv"):
+            df = pd.read_csv(file.name)
+        elif filename.endswith(".xlsx") or filename.endswith(".xls"):
+            df = pd.read_excel(file.name)
+        elif filename.endswith(".json"):
+            df = pd.read_json(file.name)
+        else:
+            return "Unsupported file format."
+        
+        GLOBAL_WORKSPACE_DATA[filename] = df
+        return f"Successfully uploaded and registered: {filename} ({len(df)} rows)"
+    except Exception as e:
+        return f"Failed to process file: {e}"
 
 def import_url(url):
     if not url:
         return "Please enter a valid URL."
-    return f"Successfully imported data from URL: {url} (Mocked)"
-
-def generate_synthetic_data(num_records):
-    # Mock synthetic data generation
-    data = {
-        "id": range(1, int(num_records) + 1),
-        "name": [f"User_{i}" for i in range(1, int(num_records) + 1)],
-        "value": [round(random.uniform(10.0, 100.0), 2) for _ in range(int(num_records))],
-        "status": [random.choice(["Active", "Inactive", "Pending"]) for _ in range(int(num_records))]
-    }
-    df = pd.DataFrame(data)
-    return df
+    try:
+        df = pd.read_csv(url)
+        filename = url.split("/")[-1] or "imported_data.csv"
+        GLOBAL_WORKSPACE_DATA[filename] = df
+        return f"Successfully imported data from URL: {filename} ({len(df)} rows)"
+    except Exception as e:
+        return f"Failed to import URL: {e}"
 
 def create_data_sources_tab():
     with gr.Row():
@@ -46,14 +65,12 @@ def create_data_sources_tab():
     with gr.Row():
         with gr.Column():
             gr.Markdown("### Import URL")
-            url_input = gr.Textbox(label="Data URL")
+            gr.Markdown("Download CSV data directly from a public URL.")
+            url_input = gr.Textbox(label="Data URL (.csv)")
             url_btn = gr.Button("Import")
             url_out = gr.Textbox(label="Output", interactive=False)
             url_btn.click(fn=import_url, inputs=url_input, outputs=url_out)
             
         with gr.Column():
-            gr.Markdown("### Generate Synthetic Data")
-            num_records = gr.Number(value=100, label="Number of Records", precision=0)
-            synth_btn = gr.Button("Generate")
-            synth_out = gr.Dataframe(label="Synthetic Data Preview")
-            synth_btn.click(fn=generate_synthetic_data, inputs=num_records, outputs=synth_out)
+            gr.Markdown("### Global Workspace Registry")
+            gr.Markdown("Any data loaded on this page is instantly available globally in the Dataset Marketplace under the **Local Workspace Data** category.")

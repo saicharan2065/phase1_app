@@ -1,7 +1,7 @@
 import gradio as gr
 import time
 from agents.qlora_trainer import QLoRATrainer
-from tabs.model_management import get_cached_hf_models
+from tabs.model_management import get_cached_hf_models, refresh_cached_models
 
 trainer = QLoRATrainer()
 
@@ -67,6 +67,6 @@ def create_qlora_tab():
             telemetry_out = gr.Textbox(label="VRAM Lifecycle Status", lines=10, interactive=False)
             
     refresh_ds_btn.click(fn=auto_detect_dataset, outputs=auto_ds)
-    refresh_models_btn.click(fn=lambda: gr.update(choices=get_cached_hf_models()), outputs=model_dropdown)
+    refresh_models_btn.click(fn=refresh_cached_models, outputs=model_dropdown)
     
     start_btn.click(fn=run_training_ui, inputs=model_dropdown, outputs=telemetry_out)
