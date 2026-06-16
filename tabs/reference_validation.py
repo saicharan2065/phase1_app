@@ -4,13 +4,27 @@ from validation.matching_engine import ReferenceDataMatchingEngine
 
 from data.dataset_manager import GLOBAL_WORKSPACE_DATA
 
-def validate_datasets(source_key, ref_key):
-    if not source_key or not ref_key or source_key not in GLOBAL_WORKSPACE_DATA or ref_key not in GLOBAL_WORKSPACE_DATA:
-        return "Please select valid source and reference datasets from the workspace.", 0.0, pd.DataFrame()
+def validate_datasets(source_key, ref_key, source_file, ref_file):
+    def load_data(key, file):
+        if file is not None:
+            try:
+                if file.name.endswith('.csv'): return pd.read_csv(file.name)
+                elif file.name.endswith('.xlsx'): return pd.read_excel(file.name)
+                elif file.name.endswith('.json'): return pd.read_json(file.name)
+                return None
+            except:
+                return None
+        elif key and key in GLOBAL_WORKSPACE_DATA:
+            return GLOBAL_WORKSPACE_DATA[key]
+        return None
+
+    source_df = load_data(source_key, source_file)
+    ref_df = load_data(ref_key, ref_file)
+    
+    if source_df is None or ref_df is None:
+        return "Please select valid source and reference datasets from the workspace, or upload files.", 0.0, pd.DataFrame()
         
     try:
-        source_df = GLOBAL_WORKSPACE_DATA[source_key]
-        ref_df = GLOBAL_WORKSPACE_DATA[ref_key]
         
         engine = ReferenceDataMatchingEngine()
         score, mismatches = engine.match_records(source_df, ref_df)
@@ -27,12 +41,16 @@ def create_reference_validation_tab():
             with gr.Row():
                 source_ds = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Source Workspace Dataset", scale=4)
                 src_refresh = gr.Button("↻", size="sm", scale=1)
+            gr.Markdown("#### Or Upload")
+            source_upload = gr.File(label="Upload Source")
             
         with gr.Column():
             gr.Markdown("### Reference Dataset")
             with gr.Row():
                 ref_ds = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Reference Workspace Dataset", scale=4)
                 ref_refresh = gr.Button("↻", size="sm", scale=1)
+            gr.Markdown("#### Or Upload")
+            ref_upload = gr.File(label="Upload Reference")
             
     val_btn = gr.Button("Run Reference Matching Engine", variant="primary")
     
@@ -48,6 +66,6 @@ def create_reference_validation_tab():
     
     val_btn.click(
         fn=validate_datasets,
-        inputs=[source_ds, ref_ds],
+        inputs=[source_ds, ref_ds, source_upload, ref_upload],
         outputs=[val_msg, match_score, mismatch_table]
     )

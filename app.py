@@ -98,6 +98,19 @@ button.nuclear-btn { background-color: #ff3333 !important; color: white !importa
 button.nuclear-btn:hover { background-color: darkred !important; color: white !important; }
 .gradio-container { background-color: white !important; }
 .dark { background-color: white !important; }
+.floating-chat-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 400px !important;
+    max-height: 600px !important;
+    overflow-y: auto !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border: 2px solid lightgreen !important;
+    border-radius: 8px !important;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.2) !important;
+}
 """
 
 GLOBAL_USERNAME = "GUEST"
@@ -227,9 +240,6 @@ def create_app():
             with gr.Tab("Model Management"):
                 create_model_management_tab()
                 
-            with gr.Tab("AI Chatbot"):
-                create_chatbot_tab()
-                
             # Phase 2
             with gr.Tab("Schema Discovery"):
                 create_schema_discovery_tab()
@@ -273,6 +283,9 @@ def create_app():
                 
             with gr.Tab("MI300X GNN Engine"):
                 create_gnn_topography_tab()
+                
+        # Global floating chatbot
+        create_chatbot_tab()
                 
     return app
 

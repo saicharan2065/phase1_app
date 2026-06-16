@@ -6,12 +6,21 @@ from graphs.graph_builder import EntityGraphEngine
 
 from data.dataset_manager import GLOBAL_WORKSPACE_DATA
 
-def detect_rings(dataset_key):
-    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
-        return "Please select a valid dataset from the workspace.", pd.DataFrame()
+def detect_rings(dataset_key, file):
+    if file is not None:
+        try:
+            if file.name.endswith('.csv'): df = pd.read_csv(file.name)
+            elif file.name.endswith('.xlsx'): df = pd.read_excel(file.name)
+            elif file.name.endswith('.json'): df = pd.read_json(file.name)
+            else: return "Unsupported file type.", pd.DataFrame()
+        except Exception as e:
+            return f"File error: {e}", pd.DataFrame()
+    elif dataset_key and dataset_key in GLOBAL_WORKSPACE_DATA:
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
+    else:
+        return "Please select a valid dataset from the workspace, or upload a file.", pd.DataFrame()
         
     try:
-        df = GLOBAL_WORKSPACE_DATA[dataset_key]
         
         engine = EntityGraphEngine()
         engine.build_from_dataframe(df)
@@ -31,12 +40,16 @@ def create_risk_clusters_tab():
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
                 refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
+                
+            gr.Markdown("### Or Upload Direct File")
+            ds_upload = gr.File(label="Dataset Fallback")
+            
+            run_btn = gr.Button("Detect Rings", variant="primary")
             
             refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
-            run_btn = gr.Button("Detect Rings", variant="primary")
             status_out = gr.Textbox(label="Status", interactive=False)
             
     gr.Markdown("### Detected Fraud Rings")
     results_table = gr.Dataframe(label="Risk Clusters")
             
-    run_btn.click(fn=detect_rings, inputs=ds_dropdown, outputs=[status_out, results_table])
+    run_btn.click(fn=detect_rings, inputs=[ds_dropdown, ds_upload], outputs=[status_out, results_table])

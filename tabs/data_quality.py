@@ -4,12 +4,21 @@ import pandas as pd
 from validation.data_quality import DataQualityAnalyzer
 from data.dataset_manager import GLOBAL_WORKSPACE_DATA
 
-def run_dq_ui(dataset_key):
-    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
-        return "Please select a valid dataset from the workspace.", 0.0, pd.DataFrame(), None
+def run_dq_ui(dataset_key, file):
+    if file is not None:
+        try:
+            if file.name.endswith('.csv'): df = pd.read_csv(file.name)
+            elif file.name.endswith('.xlsx'): df = pd.read_excel(file.name)
+            elif file.name.endswith('.json'): df = pd.read_json(file.name)
+            else: return "Unsupported file type.", 0.0, pd.DataFrame(), None
+        except Exception as e:
+            return f"File error: {e}", 0.0, pd.DataFrame(), None
+    elif dataset_key and dataset_key in GLOBAL_WORKSPACE_DATA:
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
+    else:
+        return "Please select a valid dataset from the workspace, or upload a file.", 0.0, pd.DataFrame(), None
         
     try:
-        df = GLOBAL_WORKSPACE_DATA[dataset_key]
         analyzer = DataQualityAnalyzer()
         overall_score, col_quality_df, fig = analyzer.analyze(df)
         
@@ -24,6 +33,10 @@ def create_data_quality_tab():
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
                 refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
+                
+            gr.Markdown("### Or Upload Direct File")
+            ds_upload = gr.File(label="Dataset Fallback")
+            
             analyze_btn = gr.Button("Run Quality Analysis", variant="primary")
             
             refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
@@ -43,6 +56,6 @@ def create_data_quality_tab():
             
     analyze_btn.click(
         fn=run_dq_ui,
-        inputs=ds_dropdown,
+        inputs=[ds_dropdown, ds_upload],
         outputs=[status_out, overall_score, quality_table, quality_plot]
     )
