@@ -103,9 +103,19 @@ class DatasetManager:
             if limit:
                 ds = ds.take(limit)
                 
-            # Convert stream to pandas
-            records = list(ds)
-            df = pd.DataFrame(records)
+            # Convert stream to pandas, dropping heavy objects that crash Gradio UI
+            clean_records = []
+            for row in list(ds):
+                clean_row = {}
+                for k, v in row.items():
+                    # Drop raw bytes and PIL Images which hang pandas/gradio serialization
+                    if type(v).__name__ not in ['bytes', 'Image', 'PngImageFile', 'JpegImageFile']:
+                        clean_row[k] = v
+                    else:
+                        clean_row[k] = "<Image/Bytes Data>"
+                clean_records.append(clean_row)
+                
+            df = pd.DataFrame(clean_records)
             return df
             
         except Exception as e:
