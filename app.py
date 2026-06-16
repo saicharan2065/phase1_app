@@ -27,6 +27,9 @@ from tabs.mi300x_dashboard import create_mi300x_dashboard_tab
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
+# Chatbot import
+from tabs.chatbot_ui import create_chatbot_tab
+
 compact_theme = gr.themes.Default(
     primary_hue="green",
     secondary_hue="green",
@@ -223,6 +226,9 @@ def create_app():
                 
             with gr.Tab("Model Management"):
                 create_model_management_tab()
+                
+            with gr.Tab("AI Chatbot"):
+                create_chatbot_tab()
                 
             # Phase 2
             with gr.Tab("Schema Discovery"):
