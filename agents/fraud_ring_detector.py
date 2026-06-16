@@ -14,7 +14,8 @@ class FraudRingDetector:
         # Calculate Graph Mathematics (PageRank & Centrality) to simulate GNN embeddings
         try:
             pagerank = nx.pagerank(self.graph, alpha=0.85)
-            betweenness = nx.betweenness_centrality(self.graph)
+            # Betweenness centrality is O(V*E) and hangs on large datasets, fallback to degree centrality
+            betweenness = nx.degree_centrality(self.graph)
         except:
             pagerank = {}
             betweenness = {}

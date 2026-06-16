@@ -31,7 +31,8 @@ def run_fraud_detection(dataset_key, file, username):
 def create_fraud_detection_tab(session_user):
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### Fraud Detection Engine")
+            gr.Markdown("### 🚨 Fraud Detection Engine")
+            gr.Markdown("This heuristic engine uses statistical models like **Isolation Forests** and **Local Outlier Factor (LOF)** to detect anomalous transactions. It compares each transaction amount against the standard deviation and flags suspicious merchant categories or high-risk origin countries.")
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=[], label="Dataset", scale=4)

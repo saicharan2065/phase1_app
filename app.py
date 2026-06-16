@@ -100,7 +100,7 @@ button.nuclear-btn { background-color: #ff3333 !important; color: white !importa
 button.nuclear-btn:hover { background-color: darkred !important; color: white !important; }
 .dark { background-color: white !important; }
 .tab-nav button { border-bottom: 2px solid transparent !important; }
-.tab-nav button.selected { border-bottom: 3px solid lightgreen !important; color: lightgreen !important; font-weight: bold !important; }
+.tab-nav button.selected { border-top: 3px solid lightgreen !important; color: darkgreen !important; background-color: #f0fff0 !important; font-weight: bold !important; border-bottom: none !important; }
 .floating-chat-container {
     position: fixed !important;
     bottom: 20px !important;
@@ -206,8 +206,8 @@ def get_compact_metrics(request: gr.Request = None):
     ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
-    return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding-top: 5px; font-size: 0.85em;">
-    <span><b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span></span>
+    return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
+    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'}</span></span>
     <span><b>Model:</b> {active_model}</span>
     <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%)</span>
     <span><b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)</span>
@@ -364,4 +364,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.launch(theme=compact_theme, css=css_override)
+    app.launch(theme=compact_theme, css=css_override, share=True)

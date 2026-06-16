@@ -54,9 +54,30 @@ class ChatbotEngine:
                 from data.dataset_manager import get_user_workspace
                 ws = get_user_workspace(username)
                 
+                msg_lower = message.lower()
+                
+                # Basic Guardrails
+                irrelevant_keywords = ["weather", "sports", "recipe", "joke", "movie", "song", "president", "news", "cook", "game"]
+                if any(kw in msg_lower for kw in irrelevant_keywords):
+                    response = "🔒 **Guardrail Activated**: I am a specialized Financial Crime OS Assistant. I am restricted from answering irrelevant questions. I can only assist with your workspace data, Fraud Detection, AML patterns, and MI300X telemetry."
+                    import time
+                    for i in range(len(response)):
+                        time.sleep(0.01)
+                        yield response[:i+1]
+                    return
+                
+                # Financial Advice & Malicious Guardrail
+                financial_blocklist = ["launder", "avoid detection", "invest in", "stock advice", "financial advice", "smurfing", "evade", "hide money", "bypass"]
+                if any(kw in msg_lower for kw in financial_blocklist):
+                    response = "🛑 **Critical Guardrail Activated**: I am strictly a Financial Crime Analysis Tool. I cannot provide instructions on circumventing AML controls, structuring money, or providing financial investment advice."
+                    import time
+                    for i in range(len(response)):
+                        time.sleep(0.01)
+                        yield response[:i+1]
+                    return
+                
                 response = f"I am the Antigravity OS Assistant simulating {active_model_id} on MI300X.\n\n"
                 
-                msg_lower = message.lower()
                 if "what data" in msg_lower or "my data" in msg_lower or "workspace" in msg_lower or "data" in msg_lower:
                     if ws:
                         response += f"I see {len(ws)} datasets in your secure workspace:\n"

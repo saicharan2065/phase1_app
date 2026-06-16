@@ -31,7 +31,8 @@ def run_aml_detection(dataset_key, file, username):
 def create_aml_detection_tab(session_user):
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### AML Detection Engine")
+            gr.Markdown("### ⚖️ AML Detection Engine")
+            gr.Markdown("**Anti-Money Laundering (AML)** systems look for illegal schemes used to disguise the origins of illegally obtained money. This engine scans for known typologies: **Structuring/Smurfing** (transactions just below reporting thresholds), **High Velocity Transfers**, and **Cyclical Round-Dollar Patterns**.")
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=[], label="Dataset", scale=4)

@@ -48,7 +48,11 @@ def stop_gnn():
     gnn_engine.stop()
     return "[STOP] GNN Topography Aborted."
 
-def trigger_all(target_dataset):
+def trigger_all(target_dataset, session_user):
+    # Execution Role Guardrail
+    if session_user and session_user.lower() != "admin":
+        return f"[🛑 GUARDRAIL] UNAUTHORIZED: User '{session_user}' lacks Admin privileges to trigger Global Stress Test."
+        
     # Instead of launching 4 competing processes that crash ROCm, we launch ONE massive 130GB process
     master_burner.start_burn(130)
     
@@ -132,5 +136,5 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     btn_gnn.click(fn=trigger_gnn, inputs=[target_dataset], outputs=status_out)
     stop_btn_gnn.click(fn=stop_gnn, outputs=status_out)
     
-    master_btn.click(fn=trigger_all, inputs=[target_dataset], outputs=status_out)
+    master_btn.click(fn=trigger_all, inputs=[target_dataset, session_user], outputs=status_out)
     master_stop_btn.click(fn=stop_all, outputs=status_out)
