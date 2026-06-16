@@ -235,16 +235,16 @@ def create_app():
         with gr.Group(visible=False) as os_view:
             with gr.Row():
                 with gr.Column(scale=3):
-                gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
-            with gr.Column(scale=1):
-                global_metrics = gr.HTML(get_compact_metrics())
-                refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
-                refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
-                app.load(fn=get_compact_metrics, outputs=global_metrics)
-                
-                # Setup live refreshing for Gradio 4.0+
-                timer = gr.Timer(2)
-                timer.tick(fn=get_compact_metrics, outputs=global_metrics)
+                    gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
+                with gr.Column(scale=1):
+                    global_metrics = gr.HTML(get_compact_metrics())
+                    refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
+                    refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
+                    app.load(fn=get_compact_metrics, outputs=global_metrics)
+                    
+                    # Setup live refreshing for Gradio 4.0+
+                    timer = gr.Timer(2)
+                    timer.tick(fn=get_compact_metrics, outputs=global_metrics)
         
         with gr.Tabs():
             # Hackathon Presentation Dashboard
