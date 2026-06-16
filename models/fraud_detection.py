@@ -79,6 +79,6 @@ class FraudDetectionEngine:
                 })
                 
         if not results:
-            return pd.DataFrame(columns=["Entity ID", "Risk Score", "Risk Category", "Fraud Reason"])
+            return pd.DataFrame([{"Message": "Clean data, no fraud detected."}])
             
         return pd.DataFrame(results).sort_values("Risk Score", ascending=False)

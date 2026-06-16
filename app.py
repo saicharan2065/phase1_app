@@ -91,14 +91,16 @@ compact_theme = gr.themes.Default(
 )
 
 css_override = """
+body, .gradio-container { background-color: white !important; }
 button { background-color: white !important; color: black !important; border: 1px solid lightgreen !important; }
 button:hover { background-color: lightgreen !important; color: black !important; }
 button.primary { background-color: lightgreen !important; color: black !important; }
 button.primary:hover { background-color: white !important; color: black !important; border: 1px solid lightgreen !important; }
 button.nuclear-btn { background-color: #ff3333 !important; color: white !important; border: 2px solid darkred !important; font-weight: bold !important; }
 button.nuclear-btn:hover { background-color: darkred !important; color: white !important; }
-.gradio-container { background-color: white !important; }
 .dark { background-color: white !important; }
+.tab-nav button { border-bottom: 2px solid transparent !important; }
+.tab-nav button.selected { border-bottom: 3px solid lightgreen !important; color: lightgreen !important; font-weight: bold !important; }
 .floating-chat-container {
     position: fixed !important;
     bottom: 20px !important;
@@ -204,8 +206,16 @@ def get_compact_metrics(request: gr.Request = None):
     ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
-    return f"""<div style="text-align: right; padding-top: 5px; font-size: 0.85em; line-height: 1.2;">
-    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Model:</b> {active_model} | <b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%) | {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
+    return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding-top: 5px; font-size: 0.85em;">
+    <span><b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span></span>
+    <span><b>Model:</b> {active_model}</span>
+    <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%)</span>
+    <span><b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)</span>
+    <span>{vram_metrics}</span>
+    {f"<span>{qlora_metrics}</span>" if qlora_metrics else ""}
+    {f"<span>{vision_metrics}</span>" if vision_metrics else ""}
+    {f"<span>{gnn_metrics}</span>" if gnn_metrics else ""}
+    <span><b>MI300X VRAM:</b> {simulated_vram}</span>
     </div>"""
 
 def create_app():
@@ -254,7 +264,7 @@ def create_app():
             with gr.Tabs():
                 # Hackathon Presentation Dashboard
                 with gr.Tab("MI300X Command Center"):
-                    create_mi300x_dashboard_tab()
+                    create_mi300x_dashboard_tab(session_user)
                     
                 # New Dataset Marketplace
                 with gr.Tab("Dataset Marketplace"):

@@ -36,7 +36,7 @@ class ChatbotEngine:
             self.is_loading = False
             return False, str(e)
             
-    def generate_response(self, message, history, active_model_id):
+    def generate_response(self, message, history, active_model_id, username="GUEST"):
         """
         Stream back response for gradio ChatInterface
         """
@@ -51,8 +51,35 @@ class ChatbotEngine:
             yield f"Loading {active_model_id} into 192GB VRAM... This may take a minute for 70B parameters..."
             success, msg = self._load_model(active_model_id)
             if not success:
-                # Fallback mock for presentation if they don't have the 140GB files downloaded
-                yield f"I am the Antigravity OS Assistant simulating {active_model_id}. How can I help you analyze the Financial Crime Data?"
+                from data.dataset_manager import get_user_workspace
+                ws = get_user_workspace(username)
+                
+                response = f"I am the Antigravity OS Assistant simulating {active_model_id} on MI300X.\n\n"
+                
+                msg_lower = message.lower()
+                if "what data" in msg_lower or "my data" in msg_lower or "workspace" in msg_lower or "data" in msg_lower:
+                    if ws:
+                        response += f"I see {len(ws)} datasets in your secure workspace:\n"
+                        for k, df in ws.items():
+                            response += f"- **{k}**: {len(df)} rows, {len(df.columns)} columns\n"
+                    else:
+                        response += "Your workspace is currently empty. Please load some data first using the Dataset Marketplace or Local Uploads."
+                elif "fraud" in msg_lower:
+                    response += "Based on my analysis of your data, I recommend running the Fraud Detection engine on your largest dataset to identify anomalous transactions. It uses isolation forests and XGBoost."
+                elif "aml" in msg_lower:
+                    response += "For AML (Anti-Money Laundering) detection, ensure your dataset contains transaction amounts and sender/receiver IDs, then use the AML Detection tab to run the heuristics."
+                elif "graph" in msg_lower or "entity" in msg_lower:
+                    response += "The Entity Graph tab builds a network visualization of your data. Nodes are entities (like people or accounts) and edges are transactions or relationships. This helps visually spot fraud rings and cyclical money laundering patterns."
+                else:
+                    response += f"I understand your question: '{message}'. With your current workspace data, I can help you run deep analysis. What specific patterns are you looking for?"
+                    
+                import time
+                words = response.split(" ")
+                stream = ""
+                for w in words:
+                    stream += w + " "
+                    time.sleep(0.05)
+                    yield stream
                 return
                 
         # If we successfully loaded the real model

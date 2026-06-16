@@ -4,14 +4,14 @@ from agents.chatbot_engine import ChatbotEngine
 
 engine = ChatbotEngine()
 
-def chat_interface_fn(message, history):
+def chat_interface_fn(message, history, username):
     active_model = get_active_model_state()
     
     # We yield from the generator
-    for output in engine.generate_response(message, history, active_model):
+    for output in engine.generate_response(message, history, active_model, username):
         yield output
 
-def create_chatbot_tab():
+def create_chatbot_tab(session_user):
     with gr.Accordion("💬 AI Assistant", open=False, elem_classes="floating-chat-container"):
         with gr.Row():
             active_model_display = gr.Textbox(label="Loaded Model", value=get_active_model_state, interactive=False, scale=4)
@@ -21,5 +21,6 @@ def create_chatbot_tab():
         
         chatbot = gr.ChatInterface(
             fn=chat_interface_fn,
+            additional_inputs=[session_user],
             description="Antigravity OS Contextual Chatbot."
         )

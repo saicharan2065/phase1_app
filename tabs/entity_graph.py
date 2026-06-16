@@ -46,6 +46,9 @@ def generate_graph(dataset_key, file, username):
         return f"Error: {str(e)}", f"<h3>Error: {str(e)}</h3>", "{}", pd.DataFrame()
 
 def create_entity_graph_tab(session_user):
+    gr.Markdown("### 🕸️ Entity Graph Network Builder")
+    gr.Markdown("An **Entity Graph** is a network visualization where points (nodes) represent people, companies, or accounts, and the lines (edges) connecting them represent transactions or relationships. This tool scans your dataset to link related entities, making it incredibly easy to visualize hidden 'Fraud Rings' or cyclic money laundering networks that are impossible to spot in a spreadsheet.")
+    
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### Select Workspace Dataset")
