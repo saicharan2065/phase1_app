@@ -192,6 +192,9 @@ def get_compact_metrics(request: gr.Request = None):
     if request and hasattr(request, "username") and request.username:
         GLOBAL_USERNAME = request.username
     username = GLOBAL_USERNAME
+    
+    # Get actual role from database
+    user_role = auth_engine.get_user_role(username) if username and username != "GUEST" else "STANDARD"
         
     # Calculate dynamic RAM and Disk, adding AMD Hackathon offsets to simulate massive hardware
     ram = psutil.virtual_memory()
@@ -208,7 +211,7 @@ def get_compact_metrics(request: gr.Request = None):
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
     return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
-    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({'ADMIN' if username and username.lower() == 'admin' else 'STANDARD'})</span></span>
+    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({user_role})</span></span>
     <span><b>Model:</b> {active_model}</span>
     <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%)</span>
     <span><b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)</span>

@@ -6,6 +6,7 @@ from tabs.qlora_training import trainer as qlora_engine
 from tabs.vision_lab import vision_engine
 from tabs.gnn_topography import gnn_engine
 from agents.gpu_burner import GPUBurner
+from agents import auth_engine
 
 master_burner = GPUBurner()
 
@@ -50,7 +51,8 @@ def stop_gnn():
 
 def trigger_all(target_dataset, session_user):
     # Execution Role Guardrail
-    if session_user and session_user.lower() != "admin":
+    user_role = auth_engine.get_user_role(session_user) if session_user else "STANDARD"
+    if user_role != "ADMIN":
         return f"[🛑 GUARDRAIL] UNAUTHORIZED: User '{session_user}' lacks Admin privileges to trigger Global Stress Test."
         
     # Instead of launching 4 competing processes that crash ROCm, we launch ONE massive 130GB process
