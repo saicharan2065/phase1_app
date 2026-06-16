@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 
 DB_PATH = "users.json"
 PENDING_OTPS = {}  # email -> {otp, expiry, password}
+PENDING_RESETS = {} # email -> {otp, expiry}
 
 def _load_db():
     if not os.path.exists(DB_PATH):
@@ -103,6 +104,67 @@ def verify_otp(email, otp_code):
     
     del PENDING_OTPS[email]
     return True, "Registration successful. You can now login."
+
+# --- FORGOT PASSWORD ---
+
+def request_reset_otp(email):
+    if not email:
+        return False, "Email is required."
+        
+    db = _load_db()
+    if email not in db.get("users", {}):
+        return False, "User not found."
+        
+    otp_code = str(random.randint(100000, 999999))
+    
+    PENDING_RESETS[email] = {
+        "otp": otp_code,
+        "expiry": time.time() + 300
+    }
+    
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = "pocof72065@gmail.com"
+        msg["To"] = email
+        msg["Subject"] = "Password Reset Verification Code"
+        
+        body = f"Your Password Reset OTP is: {otp_code}\n\nThis code will expire in 5 minutes."
+        msg.attach(MIMEText(body, "plain"))
+        
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login("pocof72065@gmail.com", "mwep jrif xapl somt")
+            server.send_message(msg)
+            
+        return True, f"Reset OTP sent to {email}."
+    except Exception as e:
+        return False, f"Failed to send email: {e}"
+
+def verify_reset_otp(email, otp_code, new_password):
+    if email not in PENDING_RESETS:
+        return False, "No pending reset found."
+        
+    record = PENDING_RESETS[email]
+    if time.time() > record["expiry"]:
+        del PENDING_RESETS[email]
+        return False, "OTP has expired."
+        
+    if record["otp"] != otp_code:
+        return False, "Invalid OTP code."
+        
+    db = _load_db()
+    if email in db.get("users", {}):
+        # Update existing record
+        user_record = db["users"][email]
+        if isinstance(user_record, dict):
+            user_record["password"] = new_password
+        else:
+            db["users"][email] = {"password": new_password, "username": email.split('@')[0], "status": "APPROVED"}
+        _save_db(db)
+        del PENDING_RESETS[email]
+        return True, "Password updated successfully."
+        
+    return False, "User not found in DB."
 
 # --- ROLE MANAGEMENT ---
 

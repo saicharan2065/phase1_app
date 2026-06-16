@@ -246,6 +246,17 @@ def create_app():
                     ver_btn = gr.Button("Verify & Register", variant="primary")
                     ver_status = gr.Textbox(label="Verification Status", interactive=False)
                     
+                with gr.Tab("Forgot Password"):
+                    reset_email = gr.Textbox(label="Email Address")
+                    reset_req_btn = gr.Button("Request Password Reset OTP")
+                    reset_req_status = gr.Textbox(label="Status", interactive=False)
+                    
+                    gr.Markdown("---")
+                    reset_otp = gr.Textbox(label="Enter 6-digit OTP")
+                    reset_new_pass = gr.Textbox(label="New Password", type="password")
+                    reset_ver_btn = gr.Button("Verify & Reset Password", variant="primary")
+                    reset_ver_status = gr.Textbox(label="Reset Status", interactive=False)
+                    
         with gr.Group(visible=False) as os_view:
             gr.Markdown("<div style='background-color: white; padding: 15px; border-radius: 8px; border: 1px solid lightgreen; margin-bottom: 10px;'><h1 style='margin:0;'>🛡️ Financial Crime OS - AMD Instinct MI300X Edition</h1></div>")
             
@@ -364,6 +375,18 @@ def create_app():
         
         req_btn.click(fn=handle_request, inputs=[reg_user, reg_email, reg_pass], outputs=reg_status)
         ver_btn.click(fn=handle_verify, inputs=[reg_email, otp_code], outputs=ver_status)
+        
+        def handle_reset_request(email):
+            success, msg = auth_engine.request_reset_otp(email)
+            return msg
+            
+        def handle_reset_verify(email, otp, new_pass):
+            if not new_pass: return "New password cannot be empty."
+            success, msg = auth_engine.verify_reset_otp(email, otp, new_pass)
+            return msg
+            
+        reset_req_btn.click(fn=handle_reset_request, inputs=[reset_email], outputs=reset_req_status)
+        reset_ver_btn.click(fn=handle_reset_verify, inputs=[reset_email, reset_otp, reset_new_pass], outputs=reset_ver_status)
         
         def check_url_tokens(request: gr.Request):
             if request and request.query_params:
