@@ -3,20 +3,14 @@ import gradio as gr
 import pandas as pd
 from agents.entity_resolution_agent import EntityResolutionAgent
 
-def resolve_entities_ui(file):
-    if file is None:
-        return "Please upload a dataset.", pd.DataFrame()
+from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+
+def resolve_entities_ui(dataset_key):
+    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
+        return "Please select a valid dataset from the workspace.", pd.DataFrame()
         
     try:
-        if file.name.endswith('.csv'):
-            df = pd.read_csv(file.name)
-        elif file.name.endswith('.xlsx'):
-            df = pd.read_excel(file.name)
-        elif file.name.endswith('.json'):
-            df = pd.read_json(file.name)
-        else:
-            return "Unsupported file type.", pd.DataFrame()
-            
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
         agent = EntityResolutionAgent()
         results = agent.resolve_entities(df)
         
@@ -37,12 +31,15 @@ def resolve_entities_ui(file):
 def create_entity_resolution_tab():
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### Upload Dataset")
-            ds_upload = gr.File(label="Dataset")
-            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
-            dummy_btn.click(fn=lambda n: generate_dummy_data("entity_resolution", int(n)), inputs=dummy_count, outputs=ds_upload)
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("### Select Workspace Dataset")
+            with gr.Row():
+                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
             resolve_btn = gr.Button("Run Entity Resolution", variant="primary")
+            
+            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
             
         with gr.Column():
             gr.Markdown("### Resolution Results")
@@ -50,4 +47,4 @@ def create_entity_resolution_tab():
             
     res_table = gr.Dataframe(label="Related Entities / Duplicates")
             
-    resolve_btn.click(fn=resolve_entities_ui, inputs=ds_upload, outputs=[status_out, res_table])
+    resolve_btn.click(fn=resolve_entities_ui, inputs=ds_dropdown, outputs=[status_out, res_table])

@@ -3,15 +3,14 @@ import gradio as gr
 import pandas as pd
 from models.aml_detection import AMLDetectionEngine
 
-def run_aml_detection(file):
-    if file is None:
-        return "Upload a dataset.", pd.DataFrame()
+from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+
+def run_aml_detection(dataset_key):
+    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
+        return "Please select a valid dataset from the workspace.", pd.DataFrame()
         
     try:
-        if file.name.endswith('.csv'): df = pd.read_csv(file.name)
-        elif file.name.endswith('.xlsx'): df = pd.read_excel(file.name)
-        elif file.name.endswith('.json'): df = pd.read_json(file.name)
-        else: return "Unsupported file.", pd.DataFrame()
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
         
         engine = AMLDetectionEngine()
         results_df = engine.detect_aml(df)
@@ -24,10 +23,12 @@ def create_aml_detection_tab():
     with gr.Row():
         with gr.Column():
             gr.Markdown("### AML Detection Engine")
-            ds_upload = gr.File(label="Dataset")
-            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
-            dummy_btn.click(fn=lambda n: generate_dummy_data("aml", int(n)), inputs=dummy_count, outputs=ds_upload)
+            gr.Markdown("### Select Workspace Dataset")
+            with gr.Row():
+                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
+            
+            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
             run_btn = gr.Button("Run Detection", variant="primary")
             
         with gr.Column():
@@ -37,4 +38,4 @@ def create_aml_detection_tab():
     gr.Markdown("### AML Alerts")
     results_table = gr.Dataframe(label="AML Results")
             
-    run_btn.click(fn=run_aml_detection, inputs=ds_upload, outputs=[status_out, results_table])
+    run_btn.click(fn=run_aml_detection, inputs=ds_dropdown, outputs=[status_out, results_table])

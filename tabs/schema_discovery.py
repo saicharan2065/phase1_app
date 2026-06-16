@@ -4,20 +4,14 @@ import pandas as pd
 import json
 from agents.schema_discovery_agent import SchemaDiscoveryAgent
 
-def discover_schema_ui(file):
-    if file is None:
-        return "Please upload a dataset.", ""
+from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+
+def discover_schema_ui(dataset_key):
+    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
+        return "Please select a valid dataset from the workspace.", ""
         
     try:
-        if file.name.endswith('.csv'):
-            df = pd.read_csv(file.name)
-        elif file.name.endswith('.xlsx'):
-            df = pd.read_excel(file.name)
-        elif file.name.endswith('.json'):
-            df = pd.read_json(file.name)
-        else:
-            return "Unsupported file type.", ""
-            
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
         agent = SchemaDiscoveryAgent()
         mapping = agent.discover_schema(df.columns)
         
@@ -28,16 +22,17 @@ def discover_schema_ui(file):
 def create_schema_discovery_tab():
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### Upload Dataset (CSV/JSON/XLSX)")
-            ds_upload = gr.File(label="Dataset")
-            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
-            dummy_btn.click(fn=lambda n: generate_dummy_data("schema_discovery", int(n)), inputs=dummy_count, outputs=ds_upload)
+            gr.Markdown("### Select Workspace Dataset")
+            with gr.Row():
+                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
             discover_btn = gr.Button("Discover Schema", variant="primary")
+            
+            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
             
         with gr.Column():
             gr.Markdown("### Discovered Schema Mapping")
             status_out = gr.Textbox(label="Status", interactive=False)
             mapping_out = gr.Code(label="Mapping (JSON)", language="json")
             
-    discover_btn.click(fn=discover_schema_ui, inputs=ds_upload, outputs=[status_out, mapping_out])
+    discover_btn.click(fn=discover_schema_ui, inputs=ds_dropdown, outputs=[status_out, mapping_out])

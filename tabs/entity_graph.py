@@ -6,19 +6,14 @@ from graphs.graph_visualizer import GraphVisualizer
 from agents.risk_cluster_agent import RiskClusterDetector
 import json
 
-def build_and_visualize_graph(file):
-    if file is None:
-        return "Please upload a dataset.", "<h3>No graph</h3>", "{}", pd.DataFrame()
+from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+
+def build_and_visualize_graph(dataset_key):
+    if not dataset_key or dataset_key not in GLOBAL_WORKSPACE_DATA:
+        return "Please select a valid dataset from the workspace.", "<h3>No graph</h3>", "{}", pd.DataFrame()
         
     try:
-        if file.name.endswith('.csv'):
-            df = pd.read_csv(file.name)
-        elif file.name.endswith('.xlsx'):
-            df = pd.read_excel(file.name)
-        elif file.name.endswith('.json'):
-            df = pd.read_json(file.name)
-        else:
-            return "Unsupported file type.", "<h3>Error</h3>", "{}", pd.DataFrame()
+        df = GLOBAL_WORKSPACE_DATA[dataset_key]
             
         # Build Graph
         engine = EntityGraphEngine()
@@ -43,12 +38,13 @@ def build_and_visualize_graph(file):
 def create_entity_graph_tab():
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("### Upload Dataset to Build Graph")
-            ds_upload = gr.File(label="Dataset")
-            dummy_btn = gr.Button('Generate Dummy Data', size='sm')
-            dummy_count = gr.Dropdown(choices=["15", "100", "500", "1000", "5000", "10000"], value="15", label="Records to Generate")
-            dummy_btn.click(fn=lambda n: generate_dummy_data("entity_graph", int(n)), inputs=dummy_count, outputs=ds_upload)
+            gr.Markdown("### Select Workspace Dataset to Build Graph")
+            with gr.Row():
+                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
             build_btn = gr.Button("Generate Entity Graph", variant="primary")
+            
+            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
             status_out = gr.Textbox(label="Status", interactive=False)
             stats_out = gr.Code(label="Graph Statistics", language="json")
             
@@ -61,6 +57,6 @@ def create_entity_graph_tab():
             
     build_btn.click(
         fn=build_and_visualize_graph,
-        inputs=ds_upload,
+        inputs=ds_dropdown,
         outputs=[status_out, graph_html, stats_out, clusters_table]
     )
