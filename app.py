@@ -194,7 +194,7 @@ def get_compact_metrics(request: gr.Request = None):
     </div>"""
 
 def create_app():
-    with gr.Blocks(title="Financial Crime OS", css=css_override) as app:
+    with gr.Blocks(title="Financial Crime OS") as app:
         with gr.Row():
             with gr.Column(scale=3):
                 gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
@@ -286,4 +286,4 @@ def auth_check(username, password):
 
 if __name__ == "__main__":
     app = create_app()
-    app.launch(theme=compact_theme, auth=auth_check, auth_message="Financial Crime OS - Please log in (admin/admin123 or agent1/agent123)")
+    app.launch(theme=compact_theme, css=css_override, auth=auth_check, auth_message="Financial Crime OS - Please log in (admin/admin123 or agent1/agent123)")

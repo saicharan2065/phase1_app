@@ -24,9 +24,5 @@ def create_chatbot_tab():
     chatbot = gr.ChatInterface(
         fn=chat_interface_fn,
         title="Antigravity OS Assistant",
-        description="Ask me anything about your datasets or financial crime analysis.",
-        theme="default",
-        retry_btn=None,
-        undo_btn=None,
-        clear_btn="Clear History"
+        description="Ask me anything about your datasets or financial crime analysis."
     )
