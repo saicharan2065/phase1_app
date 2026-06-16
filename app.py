@@ -174,19 +174,21 @@ def get_compact_metrics(request: gr.Request = None):
         gnn_running = False
         gnn_metrics = ""
         
-    # Calculate massive 192GB MI300X pool
-    vram_used = 0.0
-    if bulk_running:
-        vram_used += 41.2
-    if qlora_running:
-        vram_used += 42.8
-    if vision_running:
-        vram_used += 48.5
-    if gnn_running:
-        vram_used += 44.1
+    # Query real VRAM from PyTorch (AMD ROCm)
+    try:
+        import torch
+        if torch.cuda.is_available():
+            vram_used = torch.cuda.memory_allocated() / (1024**3)
+            vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        else:
+            vram_used = 0.0
+            vram_total = 192.0
+    except Exception:
+        vram_used = 0.0
+        vram_total = 192.0
         
-    vram_percent = int((vram_used / 192.0) * 100)
-    simulated_vram = f"{vram_used:.1f} GB / 192.0 GB ({vram_percent}%)"
+    vram_percent = int((vram_used / vram_total) * 100) if vram_total > 0 else 0
+    simulated_vram = f"{vram_used:.1f} GB / {vram_total:.1f} GB ({vram_percent}%)"
         
     # Extract logged in username
     if request and hasattr(request, "username") and request.username:

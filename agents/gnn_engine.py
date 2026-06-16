@@ -1,7 +1,7 @@
 import time
 import concurrent.futures
 from threading import Lock
-from agents.gpu_burner import GPUBurner
+from threading import Lock
 
 class GNNEngine:
     def __init__(self):
@@ -11,7 +11,8 @@ class GNNEngine:
         self.processed_nodes = 0
         self.status_message = "IDLE"
         self.findings = []
-        self.burner = GPUBurner()
+        self.status_message = "IDLE"
+        self.findings = []
         
     def _compute_graph_tensors(self, chunk_size):
         if not self.is_running:
@@ -80,9 +81,8 @@ class GNNEngine:
         # Phase 2: Compute in VRAM
         self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
         
-        # Start PyTorch MI300X Hardware Burn-In (45GB VRAM)
-        if not skip_gpu:
-            self.burner.start_burn(target_gb=45)
+        # VRAM Compute
+
         
         chunk_size = 50000000 # 50 Million node chunks
         chunks = [chunk_size] * (self.total_nodes // chunk_size)
@@ -90,7 +90,6 @@ class GNNEngine:
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             list(executor.map(self._compute_graph_tensors, chunks))
             
-        self.burner.stop_burn()
         self.status_message = "COMPLETE: Global Network Analyzed."
         self.is_running = False
         return self.findings
@@ -98,4 +97,3 @@ class GNNEngine:
     def stop(self):
         self.is_running = False
         self.status_message = "ABORTED"
-        self.burner.stop_burn()
