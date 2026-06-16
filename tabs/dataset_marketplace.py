@@ -8,25 +8,33 @@ from validation.matching_engine import ReferenceDataMatchingEngine
 
 dm = DatasetManager()
 
-def update_dataset_choices(category):
+def update_dataset_choices(category, username):
     if category == "Custom Hugging Face Dataset":
         return gr.update(choices=[], visible=False), gr.update(visible=True)
     
-    datasets = dm.fetch_datasets_by_category(category)
+    if category == "Local Workspace Data":
+        from data.dataset_manager import get_user_workspace
+        datasets = list(get_user_workspace(username).keys())
+    else:
+        datasets = dm.fetch_datasets_by_category(category)
+        
     return gr.update(choices=datasets, value=datasets[0] if datasets else None, visible=True), gr.update(visible=False)
 
 def update_estimates(limit_str):
     mem, time = dm.estimate_memory_and_time(limit_str)
     return f"**Est. Mem:** {mem} | **Time:** {time}"
 
-def load_dataset_ui(category, ds_dropdown, custom_ds, limit_str):
+def load_dataset_ui(category, ds_dropdown, custom_ds, limit_str, username):
     dataset_id = custom_ds if category == "Custom Hugging Face Dataset" else ds_dropdown
     if not dataset_id:
         return pd.DataFrame(), "Please select or enter a dataset ID."
         
-    df = dm.load_dataset_records(dataset_id, limit_str)
+    df = dm.load_dataset_records(dataset_id, limit_str, username)
     if not df.empty and "Error" not in df.columns:
         msg = f"Loaded {len(df)} rows from {dataset_id}"
+        # Universal Data Sync
+        from data.dataset_manager import get_user_workspace
+        get_user_workspace(username)[dataset_id] = df
     else:
         msg = df.iloc[0]["Error"] if "Error" in df.columns else "Dataset is empty."
         
@@ -69,7 +77,7 @@ def safe_preview(df):
         preview_df[col] = preview_df[col].astype(str).str.slice(0, 300)
     return preview_df
 
-def create_dataset_marketplace_tab():
+def create_dataset_marketplace_tab(session_user):
     categories = list(dm.category_map.keys()) + ["Custom Hugging Face Dataset"]
     limits = ["100", "1000", "10000", "100000", "1000000", "ALL"]
     
@@ -98,13 +106,13 @@ def create_dataset_marketplace_tab():
                 
             s_df_state = gr.State()
             
-            s_cat.change(update_dataset_choices, inputs=s_cat, outputs=[s_ds, s_custom])
-            s_refresh_btn.click(update_dataset_choices, inputs=s_cat, outputs=[s_ds, s_custom])
+            s_cat.change(update_dataset_choices, inputs=[s_cat, session_user], outputs=[s_ds, s_custom])
+            s_refresh_btn.click(update_dataset_choices, inputs=[s_cat, session_user], outputs=[s_ds, s_custom])
             s_limit.change(update_estimates, inputs=s_limit, outputs=s_est)
             
             s_load_btn.click(
                 load_dataset_ui, 
-                inputs=[s_cat, s_ds, s_custom, s_limit], 
+                inputs=[s_cat, s_ds, s_custom, s_limit, session_user], 
                 outputs=[s_df_state, s_status]
             ).then(
                 get_preview_info,
@@ -132,13 +140,13 @@ def create_dataset_marketplace_tab():
                 
             r_df_state = gr.State()
             
-            r_cat.change(update_dataset_choices, inputs=r_cat, outputs=[r_ds, r_custom])
-            r_refresh_btn.click(update_dataset_choices, inputs=r_cat, outputs=[r_ds, r_custom])
+            r_cat.change(update_dataset_choices, inputs=[r_cat, session_user], outputs=[r_ds, r_custom])
+            r_refresh_btn.click(update_dataset_choices, inputs=[r_cat, session_user], outputs=[r_ds, r_custom])
             r_limit.change(update_estimates, inputs=r_limit, outputs=r_est)
             
             r_load_btn.click(
                 load_dataset_ui, 
-                inputs=[r_cat, r_ds, r_custom, r_limit], 
+                inputs=[r_cat, r_ds, r_custom, r_limit, session_user], 
                 outputs=[r_df_state, r_status]
             ).then(
                 get_preview_info,

@@ -28,7 +28,7 @@ def load_smtp_ui():
         return config.get("email", "")
     return ""
 
-def create_alerts_tab():
+def create_alerts_tab(session_user=None):
     with gr.Row():
         with gr.Column(scale=2):
             gr.Markdown("### Alert Dispatcher")

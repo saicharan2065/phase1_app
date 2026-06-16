@@ -3,9 +3,9 @@ import gradio as gr
 import pandas as pd
 from agents.entity_resolution_agent import EntityResolutionAgent
 
-from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+from data.dataset_manager import get_user_workspace
 
-def resolve_entities_ui(dataset_key, file):
+def resolve_entities_ui(dataset_key, file, username):
     if file is not None:
         try:
             if file.name.endswith('.csv'): df = pd.read_csv(file.name)
@@ -14,8 +14,8 @@ def resolve_entities_ui(dataset_key, file):
             else: return "Unsupported file type.", pd.DataFrame()
         except Exception as e:
             return f"File error: {e}", pd.DataFrame()
-    elif dataset_key and dataset_key in GLOBAL_WORKSPACE_DATA:
-        df = GLOBAL_WORKSPACE_DATA[dataset_key]
+    elif dataset_key and dataset_key in get_user_workspace(username):
+        df = get_user_workspace(username)[dataset_key]
     else:
         return "Please select a valid dataset from the workspace, or upload a file.", pd.DataFrame()
         
@@ -37,12 +37,12 @@ def resolve_entities_ui(dataset_key, file):
     except Exception as e:
         return f"Error: {str(e)}", pd.DataFrame()
 
-def create_entity_resolution_tab():
+def create_entity_resolution_tab(session_user):
     with gr.Row():
         with gr.Column():
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
-                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                ds_dropdown = gr.Dropdown(choices=[], label="Dataset", scale=4)
                 refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
                 
             gr.Markdown("### Or Upload Direct File")
@@ -50,7 +50,7 @@ def create_entity_resolution_tab():
             
             resolve_btn = gr.Button("Run Entity Resolution", variant="primary")
             
-            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
+            refresh_btn.click(fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), inputs=session_user, outputs=ds_dropdown)
             
         with gr.Column():
             gr.Markdown("### Resolution Results")
@@ -58,4 +58,4 @@ def create_entity_resolution_tab():
             
     res_table = gr.Dataframe(label="Related Entities / Duplicates")
             
-    resolve_btn.click(fn=resolve_entities_ui, inputs=[ds_dropdown, ds_upload], outputs=[status_out, res_table])
+    resolve_btn.click(fn=resolve_entities_ui, inputs=[ds_dropdown, ds_upload, session_user], outputs=[status_out, res_table])

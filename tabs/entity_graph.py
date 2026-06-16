@@ -1,14 +1,16 @@
 from utils.dummy_generator import generate_dummy_data
 import gradio as gr
+from utils.dummy_generator import generate_dummy_data
+import gradio as gr
 import pandas as pd
 from graphs.graph_builder import EntityGraphEngine
 from graphs.graph_visualizer import GraphVisualizer
 from agents.risk_cluster_agent import RiskClusterDetector
 import json
 
-from data.dataset_manager import GLOBAL_WORKSPACE_DATA
+from data.dataset_manager import get_user_workspace
 
-def generate_graph(dataset_key, file):
+def generate_graph(dataset_key, file, username):
     if file is not None:
         try:
             if file.name.endswith('.csv'): df = pd.read_csv(file.name)
@@ -17,8 +19,8 @@ def generate_graph(dataset_key, file):
             else: return "Unsupported file type.", "<h3>Error</h3>", "{}", pd.DataFrame()
         except Exception as e:
             return f"File error: {e}", f"<h3>Error: {e}</h3>", "{}", pd.DataFrame()
-    elif dataset_key and dataset_key in GLOBAL_WORKSPACE_DATA:
-        df = GLOBAL_WORKSPACE_DATA[dataset_key]
+    elif dataset_key and dataset_key in get_user_workspace(username):
+        df = get_user_workspace(username)[dataset_key]
     else:
         return "Please select a valid dataset from the workspace, or upload a file.", "<h3>No graph</h3>", "{}", pd.DataFrame()
         
@@ -43,12 +45,12 @@ def generate_graph(dataset_key, file):
     except Exception as e:
         return f"Error: {str(e)}", f"<h3>Error: {str(e)}</h3>", "{}", pd.DataFrame()
 
-def create_entity_graph_tab():
+def create_entity_graph_tab(session_user):
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
-                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
+                ds_dropdown = gr.Dropdown(choices=[], label="Dataset", scale=4)
                 refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
                 
             gr.Markdown("### Or Upload Direct File")
@@ -56,7 +58,7 @@ def create_entity_graph_tab():
             
             gen_btn = gr.Button("Generate Graph", variant="primary")
             
-            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
+            refresh_btn.click(fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), inputs=session_user, outputs=ds_dropdown)
             status_out = gr.Textbox(label="Status", interactive=False)
             stats_out = gr.Code(label="Graph Statistics", language="json")
             
@@ -69,6 +71,6 @@ def create_entity_graph_tab():
             
     gen_btn.click(
         fn=generate_graph,
-        inputs=[ds_dropdown, ds_upload],
+        inputs=[ds_dropdown, ds_upload, session_user],
         outputs=[status_out, graph_html, stats_out, clusters_table]
     )

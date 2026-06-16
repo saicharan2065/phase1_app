@@ -4,8 +4,15 @@ from huggingface_hub import HfApi
 from datasets import load_dataset
 import pandas as pd
 
-# Global Memory Registry for files uploaded via Local Data Sources tab
-GLOBAL_WORKSPACE_DATA = {}
+# Multi-Tenant Memory Registry: {username: {dataset_name: dataframe}}
+USER_WORKSPACE_DATA = {}
+
+def get_user_workspace(username):
+    if not username:
+        username = "GUEST"
+    if username not in USER_WORKSPACE_DATA:
+        USER_WORKSPACE_DATA[username] = {}
+    return USER_WORKSPACE_DATA[username]
 
 class DatasetManager:
     def __init__(self, cache_dir="storage/datasets_cache"):
@@ -16,7 +23,7 @@ class DatasetManager:
         # Hardcoded specific dataset mappings for our enterprise categories
         # as HuggingFace search can be noisy
         self.category_map = {
-            "Local Workspace Data": [], # Dynamically pulled from GLOBAL_WORKSPACE_DATA
+            "Local Workspace Data": [], # Dynamically pulled via API
             "AML & Financial Fraud": ['dvilasuero/banking_with_vectors', 'zeroshot/twitter-financial-news-sentiment'],
             "Customer Profiles & KYC": ['bitext/Bitext-customer-support-llm-chatbot-training-dataset'],
             "Synthetic Transactions": ['gretelai/synthetic_pii_finance_multilingual']
@@ -28,7 +35,8 @@ class DatasetManager:
             return []
             
         if category == "Local Workspace Data":
-            return list(GLOBAL_WORKSPACE_DATA.keys())
+            # Note: This is an internal check now, UI should call get_user_workspace
+            return []
             
         # For a real application, we might search HF using self.api.list_datasets()
         # but for reliability we use our curated list.
@@ -47,7 +55,7 @@ class DatasetManager:
         except Exception as e:
             return {"error": str(e)}
 
-    def load_dataset_records(self, dataset_id, limit_str):
+    def load_dataset_records(self, dataset_id, limit_str, username="GUEST"):
         """
         Load dataset records lazily based on the selected limit.
         limit_str can be '100', '1000', '10000', '100000', '1000000', or 'ALL'
@@ -56,11 +64,15 @@ class DatasetManager:
             limit = None if limit_str == "ALL" else int(limit_str)
             
             # If dataset is locally uploaded, serve it from RAM
-            if dataset_id in GLOBAL_WORKSPACE_DATA:
-                df = GLOBAL_WORKSPACE_DATA[dataset_id]
+            user_workspace = get_user_workspace(username)
+            if dataset_id in user_workspace:
+                df = user_workspace[dataset_id]
                 if limit:
                     return df.head(limit)
                 return df
+            
+            # If dataset is locally uploaded, serve it from RAM (requires username context now, but for legacy calls we can just return error or require passing df directly, wait, dataset_marketplace needs user context! I'll update load_dataset_records to take username)
+            pass
 
             # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
             # Load dataset lazily without hardcoded split

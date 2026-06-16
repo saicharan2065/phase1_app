@@ -5,30 +5,28 @@ from tabs.model_management import get_cached_hf_models, refresh_cached_models
 
 trainer = QLoRATrainer()
 
-def auto_detect_dataset():
-    import os
-    import glob
-    
-    # We download datasets into storage/datasets/ via the marketplace
-    ds_dir = "storage/datasets"
-    if not os.path.exists(ds_dir):
-        return "No datasets found."
-        
-    files = glob.glob(os.path.join(ds_dir, "*.csv")) + glob.glob(os.path.join(ds_dir, "*.json"))
-    if not files:
-        return "No datasets found."
-        
-    latest_file = max(files, key=os.path.getctime)
-    return os.path.basename(latest_file)
-
-def run_training_ui(model_id, dataset_key, dataset_file):
-    dataset_id = auto_detect_dataset()
-    if dataset_key and dataset_key in getattr(sys.modules.get('data.dataset_manager'), 'GLOBAL_WORKSPACE_DATA', {}):
-        pass # They selected a valid dataset
+def run_training_ui(model_id, dataset_key, dataset_file, username):
+    import sys
+    import pandas as pd
+    from data.dataset_manager import get_user_workspace
+    if dataset_key and dataset_key in get_user_workspace(username):
+        dataset_name = dataset_key
     elif dataset_file is not None:
-        pass # They uploaded one
-    elif not dataset_id or "No datasets" in dataset_id:
-        yield "Error: Please select a workspace dataset, upload a file, or download one in the Dataset Marketplace."
+        import os
+        dataset_name = os.path.basename(dataset_file.name)
+        
+        # Sync into USER_WORKSPACE_DATA
+        try:
+            if dataset_name.endswith(".csv"):
+                df = pd.read_csv(dataset_file.name)
+            else:
+                df = pd.read_json(dataset_file.name)
+            get_user_workspace(username)[dataset_name] = df
+        except:
+            pass
+            
+    else:
+        yield "Error: Please select a workspace dataset or upload a file."
         return
         
     if not model_id or "No models" in model_id:
@@ -36,7 +34,7 @@ def run_training_ui(model_id, dataset_key, dataset_file):
         return
         
     # Start background job
-    trainer.start_training("Local_Data_Source" if (dataset_key or dataset_file) else dataset_id, model_id)
+    trainer.start_training(dataset_name, model_id)
     
     # Stream UI updates
     while trainer.is_training:
@@ -47,19 +45,16 @@ def run_training_ui(model_id, dataset_key, dataset_file):
         
     yield f"{trainer.status_message}\n\n[██████████████████████████████████████████████████] 100%"
 
-def create_qlora_tab():
+def create_qlora_tab(session_user):
     gr.Markdown("### QLoRA Neural Rewiring Studio")
     gr.Markdown("Active Fine-Tuning Environment. Train your own custom financial crime detection intelligence. The system automatically detects your latest dataset and handles the entire 50GB VRAM lifecycle (Mounting -> Freezing -> Training -> Demounting).")
     
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("#### Step 1: Data Target")
-            auto_ds = gr.Textbox(label="Auto-Detected HF Target Dataset", value=auto_detect_dataset, interactive=False)
-            refresh_ds_btn = gr.Button("↻ Rescan HF Cache", size="sm")
-            
             with gr.Row():
-                from data.dataset_manager import GLOBAL_WORKSPACE_DATA
-                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Or Workspace Dataset", scale=4)
+                from data.dataset_manager import get_user_workspace
+                ds_dropdown = gr.Dropdown(choices=[], label="Select Workspace Dataset", scale=4)
                 refresh_btn = gr.Button("↻", size="sm", scale=1)
             ds_upload = gr.File(label="Or Upload Direct File")
             
@@ -70,13 +65,12 @@ def create_qlora_tab():
             gr.Markdown("#### Step 3: Execute")
             start_btn = gr.Button("🚀 Start Neural Rewiring", variant="primary")
             
-            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
+            refresh_btn.click(fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), inputs=session_user, outputs=ds_dropdown)
             
         with gr.Column(scale=2):
             gr.Markdown("#### Live Training Telemetry")
             telemetry_out = gr.Textbox(label="VRAM Lifecycle Status", lines=10, interactive=False)
             
-    refresh_ds_btn.click(fn=auto_detect_dataset, outputs=auto_ds)
     refresh_models_btn.click(fn=refresh_cached_models, outputs=model_dropdown)
     
-    start_btn.click(fn=run_training_ui, inputs=[model_dropdown, ds_dropdown, ds_upload], outputs=telemetry_out)
+    start_btn.click(fn=run_training_ui, inputs=[model_dropdown, ds_dropdown, ds_upload, session_user], outputs=telemetry_out)

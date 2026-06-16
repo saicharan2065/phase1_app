@@ -6,11 +6,24 @@ from agents.gnn_engine import GNNEngine
 
 gnn_engine = GNNEngine()
 
-def run_gnn_analytics(dataset_key, file):
+def run_gnn_analytics(dataset_key, file, username):
     if gnn_engine.is_running:
         yield "Already computing...", pd.DataFrame()
         return
         
+    if file is not None:
+        import os
+        from data.dataset_manager import get_user_workspace
+        filename = os.path.basename(file.name)
+        try:
+            if filename.endswith(".csv"):
+                df = pd.read_csv(file.name)
+            else:
+                df = pd.read_json(file.name)
+            get_user_workspace(username)[filename] = df
+        except:
+            pass # fallback to engine processing if invalid
+            
     yield "Initializing 240GB RAM Allocation...", pd.DataFrame()
     
     t = threading.Thread(target=gnn_engine.run_deep_graph_analytics)
@@ -37,28 +50,27 @@ def run_gnn_analytics(dataset_key, file):
     final_df = pd.DataFrame(gnn_engine.findings)
     yield f"COMPLETE: Analyzed {total} transaction nodes across Global Financial System.", final_df
 
-def create_gnn_topography_tab():
+def create_gnn_topography_tab(session_user):
     gr.Markdown("### 🕸️ Deep Graph Convolutional Networks (GNN)")
     gr.Markdown("Utilize your **240 GB of System RAM** to construct massive Adjacency Matrices of the global financial network. The Matrix is then pushed into the **MI300X 192GB VRAM** to compute Graph Embeddings that mathematically identify hidden fraud clusters across **500 Million** nodes.")
     
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("#### Global Financial Graph")
-            gr.Markdown("**Input Target:** 5TB NVMe Global Ledger DB")
+            gr.Markdown("#### Step 1: Neural Target Initialization")
             
             with gr.Row():
-                from data.dataset_manager import GLOBAL_WORKSPACE_DATA
-                ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Select Workspace Dataset", scale=4)
+                from data.dataset_manager import get_user_workspace
+                ds_dropdown = gr.Dropdown(choices=[], label="Select Workspace Dataset", scale=4)
                 refresh_btn = gr.Button("↻", size="sm", scale=1)
                 
             ds_upload = gr.File(label="Or Upload Direct File")
             
             start_btn = gr.Button("🚀 Launch 500M Node GNN", variant="primary")
             
-            refresh_btn.click(fn=lambda: gr.update(choices=list(GLOBAL_WORKSPACE_DATA.keys())), outputs=ds_dropdown)
+            refresh_btn.click(fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), inputs=session_user, outputs=ds_dropdown)
             status_out = gr.Textbox(label="GNN Telemetry", lines=4, interactive=False)
             
         with gr.Column(scale=2):
             results_table = gr.Dataframe(label="Anomalous Topology Clusters Discovered", max_height=300)
             
-    start_btn.click(fn=run_gnn_analytics, inputs=[ds_dropdown, ds_upload], outputs=[status_out, results_table])
+    start_btn.click(fn=run_gnn_analytics, inputs=[ds_dropdown, ds_upload, session_user], outputs=[status_out, results_table])

@@ -59,7 +59,7 @@ def run_vram_inference(dataset_id):
     final_df = pd.DataFrame(generator.results)
     yield "Bulk VRAM Inference Complete!", final_df
 
-def create_bulk_sar_tab():
+def create_bulk_sar_tab(session_user=None):
     gr.Markdown("### Advanced VRAM Inference Engine")
     gr.Markdown("Select a real dataset downloaded from the **Dataset Marketplace**. This engine uses 4-Bit GPU Batching to analyze thousands of Suspects concurrently without crashing the webpage.")
     

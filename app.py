@@ -205,8 +205,7 @@ def get_compact_metrics(request: gr.Request = None):
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
     return f"""<div style="text-align: right; padding-top: 5px; font-size: 0.85em; line-height: 1.2;">
-    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Model:</b> {active_model} | <b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)<br>
-    {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
+    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Model:</b> {active_model} | <b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%) | {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
     </div>"""
 
 def create_app():
@@ -259,61 +258,62 @@ def create_app():
                     
                 # New Dataset Marketplace
                 with gr.Tab("Dataset Marketplace"):
-                    create_dataset_marketplace_tab()
+                    create_dataset_marketplace_tab(session_user)
                     
                 # Phase 1
                 with gr.Tab("Local Data Sources"):
-                    create_data_sources_tab()
+                    create_data_sources_tab(session_user)
                     
                 with gr.Tab("Reference Validation"):
-                    create_reference_validation_tab()
+                    create_reference_validation_tab(session_user)
                     
                 with gr.Tab("Model Management"):
-                    create_model_management_tab()
+                    create_model_management_tab() # Doesn't need it, global state? Actually pass it just in case:
+                    # Wait, let's keep model management global. It just manages models on the disk.
                     
                 # Phase 2
                 with gr.Tab("Schema Discovery"):
-                    create_schema_discovery_tab()
+                    create_schema_discovery_tab(session_user)
                     
                 with gr.Tab("Entity Resolution"):
-                    create_entity_resolution_tab()
+                    create_entity_resolution_tab(session_user)
                     
                 with gr.Tab("Entity Graph"):
-                    create_entity_graph_tab()
+                    create_entity_graph_tab(session_user)
                     
                 with gr.Tab("Data Quality"):
-                    create_data_quality_tab()
+                    create_data_quality_tab(session_user)
                     
                 # Phase 3
                 with gr.Tab("Fraud Detection"):
-                    create_fraud_detection_tab()
+                    create_fraud_detection_tab(session_user)
                     
                 with gr.Tab("AML Detection"):
-                    create_aml_detection_tab()
+                    create_aml_detection_tab(session_user)
                     
                 with gr.Tab("Risk Clusters"):
-                    create_risk_clusters_tab()
+                    create_risk_clusters_tab(session_user)
                     
                 with gr.Tab("Investigations"):
-                    create_investigations_tab()
+                    create_investigations_tab(session_user)
                     
                 with gr.Tab("Case Management"):
-                    create_case_management_tab()
+                    create_case_management_tab(session_user)
                     
                 with gr.Tab("Alerts"):
-                    create_alerts_tab()
+                    create_alerts_tab(session_user)
                     
                 with gr.Tab("Reports"):
-                    create_bulk_sar_tab()
+                    create_bulk_sar_tab(session_user)
                     
                 with gr.Tab("QLoRA Studio"):
-                    create_qlora_tab()
+                    create_qlora_tab(session_user)
                     
                 with gr.Tab("MI300X Vision Lab"):
-                    create_vision_lab_tab()
+                    create_vision_lab_tab(session_user)
                     
                 with gr.Tab("MI300X GNN Engine"):
-                    create_gnn_topography_tab()
+                    create_gnn_topography_tab(session_user)
                 
             # Global floating chatbot
             create_chatbot_tab()

@@ -47,7 +47,7 @@ def run_debate(case_id):
         yield p_out, d_out, j_out
         time.sleep(0.05)
 
-def create_case_management_tab():
+def create_case_management_tab(session_user=None):
     gr.Markdown("### Case Management")
     
     with gr.Row():

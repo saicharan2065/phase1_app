@@ -20,7 +20,7 @@ def run_investigation(suspect_id):
         yield output
         time.sleep(0.05)
 
-def create_investigations_tab():
+def create_investigations_tab(session_user=None):
     gr.Markdown("### Investigation Agent")
     suspect_id = gr.Textbox(label="Suspect ID")
     inv_btn = gr.Button("Initialize Autonomous Investigation", variant="primary")

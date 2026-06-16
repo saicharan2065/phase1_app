@@ -19,6 +19,9 @@ class GPUBurner:
         """Stops the isolated GPU computation process and instantly frees the allocated VRAM."""
         self.is_running = False
         if self.process:
-            self.process.terminate()
-            self.process.wait()
+            if sys.platform == 'win32':
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.process.pid)], capture_output=True)
+            else:
+                self.process.terminate()
+                self.process.wait()
             self.process = None

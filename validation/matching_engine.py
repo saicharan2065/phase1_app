@@ -33,14 +33,18 @@ class ReferenceDataMatchingEngine:
 
         common_cols = list(set(source_cols).intersection(set(ref_cols)))
         if not common_cols:
-            return 0.0, pd.DataFrame([{"Error": "No common schema alignment found"}])
+            s_mapping = {str(c).lower(): c for c in source_df.columns}
+            r_mapping = {str(c).lower(): c for c in ref_df.columns}
+            source_docs = source_df.astype(str).agg(' '.join, axis=1).tolist()
+            ref_docs = ref_df.astype(str).agg(' '.join, axis=1).tolist()
+            common_cols = ["ALL_COLUMNS_FALLBACK"]
+        else:
+            s_mapping = {str(c).lower(): c for c in source_df.columns}
+            r_mapping = {str(c).lower(): c for c in ref_df.columns}
 
-        s_mapping = {str(c).lower(): c for c in source_df.columns}
-        r_mapping = {str(c).lower(): c for c in ref_df.columns}
-
-        # Vectorized string concatenation (100x faster than apply lambda)
-        source_docs = source_df[[s_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
-        ref_docs = ref_df[[r_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
+            # Vectorized string concatenation (100x faster than apply lambda)
+            source_docs = source_df[[s_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
+            ref_docs = ref_df[[r_mapping[k] for k in common_cols]].astype(str).agg(' '.join, axis=1).tolist()
 
         # Optional Auto-Translation before semantic matching
         try:
