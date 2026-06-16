@@ -27,8 +27,7 @@ def detect_rings(dataset_key, file, username):
         
         detector = FraudRingDetector(engine.graph)
         clusters = detector.detect_rings()
-        
-        return "Risk Cluster Detection Complete", pd.DataFrame(clusters)
+        return f"🚨 CRITICAL ALERT: Detected {len(clusters)} highly-suspicious Fraud Rings in the active workspace. See details below.", pd.DataFrame(clusters)
     except Exception as e:
         return f"Error: {str(e)}", pd.DataFrame()
 
