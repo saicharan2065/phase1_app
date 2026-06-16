@@ -71,7 +71,27 @@ class DatasetManager:
                     return df.head(limit)
                 return df
             
-            # If dataset is locally uploaded, serve it from RAM (requires username context now, but for legacy calls we can just return error or require passing df directly, wait, dataset_marketplace needs user context! I'll update load_dataset_records to take username)
+            # Intercept and Parse URLs
+            if dataset_id.startswith("http://") or dataset_id.startswith("https://"):
+                if "huggingface.co/datasets/" in dataset_id:
+                    # Extract the pure repository ID
+                    # e.g. https://huggingface.co/datasets/google-research-datasets/conceptual_captions
+                    dataset_id = dataset_id.split("huggingface.co/datasets/")[-1].strip("/")
+                else:
+                    # Raw web URL to a CSV or JSON file
+                    if dataset_id.endswith(".json"):
+                        df = pd.read_json(dataset_id)
+                    else:
+                        df = pd.read_csv(dataset_id)
+                    if limit:
+                        return df.head(limit)
+                    return df
+                    
+            # Auto-correct common un-namespaced datasets
+            if dataset_id == "conceptual_captions":
+                dataset_id = "google-research-datasets/conceptual_captions"
+            elif dataset_id == "sbu_captions":
+                dataset_id = "vicenteor/sbu_captions"
             pass
 
             # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
