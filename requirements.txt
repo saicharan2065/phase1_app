@@ -15,3 +15,10 @@ xgboost
 lightgbm
 datasets
 huggingface_hub
+accelerate
+torch
+torch_geometric
+transformers
+bitsandbytes
+trl
+peft

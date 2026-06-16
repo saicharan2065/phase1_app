@@ -19,13 +19,13 @@ class VisionForensicsEngine:
         self.status_message = "Loading real VLM into MI300X VRAM..."
         try:
             import torch
-            from transformers import AutoProcessor, AutoModelForCausalLM
+            from transformers import AutoProcessor, BlipForConditionalGeneration
             
             # Use a tiny multimodal model for fast loading
             model_id = "Salesforce/blip-image-captioning-base"
             
             self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
+            self.model = BlipForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
         except ImportError as e:

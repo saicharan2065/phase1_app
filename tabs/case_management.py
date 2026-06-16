@@ -25,10 +25,13 @@ def run_debate(case_id):
     try:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
+        from tabs.model_management import get_active_model_state
         
-        model_id = "Qwen/Qwen1.5-0.5B"
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
-        model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16)
+        active_model = get_active_model_state()
+        model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, trust_remote_code=True)
         
         # We will generate them sequentially
         yield "Thinking...", "Thinking...", "Thinking..."
