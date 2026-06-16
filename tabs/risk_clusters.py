@@ -33,9 +33,10 @@ def detect_rings(dataset_key, file, username):
         return f"Error: {str(e)}", pd.DataFrame()
 
 def create_risk_clusters_tab(session_user):
+    gr.Markdown("### 🕸️ Risk Cluster & Fraud Ring Detector")
+    gr.Markdown("This engine scans your underlying Entity Graph to detect highly connected **Fraud Rings**. It looks for groups of accounts transacting in tight circles (cyclic flows), high-risk multi-hop relationships, and known bad actors forming suspicious clusters.")
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### Fraud Ring Detector")
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=[], label="Dataset", scale=4)

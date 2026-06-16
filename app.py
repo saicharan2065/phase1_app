@@ -245,21 +245,22 @@ def create_app():
                     ver_status = gr.Textbox(label="Verification Status", interactive=False)
                     
         with gr.Group(visible=False) as os_view:
+            gr.Markdown("<div style='background-color: white; padding: 15px; border-radius: 8px; border: 1px solid lightgreen; margin-bottom: 10px;'><h1 style='margin:0;'>🛡️ Financial Crime OS - AMD Instinct MI300X Edition</h1></div>")
+            
             with gr.Row():
-                with gr.Column(scale=3):
-                    gr.Markdown("# Financial Crime OS - AMD Instinct MI300X Edition")
-                with gr.Column(scale=1):
+                with gr.Column(scale=5):
+                    global_metrics = gr.HTML(get_compact_metrics())
+                with gr.Column(scale=1, min_width=200):
                     with gr.Row():
-                        global_metrics = gr.HTML(get_compact_metrics())
-                        logout_btn = gr.Button("Logout", variant="secondary", size="sm")
-                    
-                    refresh_btn = gr.Button("↻ Refresh Metrics", size="sm")
-                    refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
-                    app.load(fn=get_compact_metrics, outputs=global_metrics)
-                    
-                    # Setup live refreshing for Gradio 4.0+
-                    timer = gr.Timer(2)
-                    timer.tick(fn=get_compact_metrics, outputs=global_metrics)
+                        refresh_btn = gr.Button("↻ Refresh Metrics", size="sm", scale=1)
+                        logout_btn = gr.Button("Logout", variant="secondary", size="sm", scale=1)
+                        
+            refresh_btn.click(fn=get_compact_metrics, outputs=global_metrics)
+            app.load(fn=get_compact_metrics, outputs=global_metrics)
+            
+            # Setup live refreshing for Gradio 4.0+
+            timer = gr.Timer(2)
+            timer.tick(fn=get_compact_metrics, outputs=global_metrics)
             
             with gr.Tabs():
                 # Hackathon Presentation Dashboard
@@ -326,7 +327,7 @@ def create_app():
                     create_gnn_topography_tab(session_user)
                 
             # Global floating chatbot
-            create_chatbot_tab()
+            create_chatbot_tab(session_user)
             
         # Auth Logic Connections
         def handle_login(email, password):

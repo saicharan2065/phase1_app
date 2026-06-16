@@ -28,7 +28,8 @@ class GraphVisualizer:
         for u, v, data in self.graph.edges(data=True):
             net.add_edge(u, v, title=data.get("relationship", "connected_to"))
             
-        net.toggle_physics(False)
+        net.toggle_physics(True)
+        net.show_buttons(filter_=['physics'])
         net.save_graph(output_path)
         
         if os.path.exists(output_path):
