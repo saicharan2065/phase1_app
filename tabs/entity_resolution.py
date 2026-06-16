@@ -31,8 +31,6 @@ def resolve_entities_ui(dataset_key):
 def create_entity_resolution_tab():
     with gr.Row():
         with gr.Column():
-    with gr.Row():
-        with gr.Column():
             gr.Markdown("### Select Workspace Dataset")
             with gr.Row():
                 ds_dropdown = gr.Dropdown(choices=list(GLOBAL_WORKSPACE_DATA.keys()), label="Dataset", scale=4)
