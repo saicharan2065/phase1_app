@@ -73,9 +73,9 @@ class VisionForensicsEngine:
         self.status_message = "INITIALIZING MI300X: Mounting Vision-Language Model..."
         self._initialize_vlm_engine()
         
-        # Start PyTorch MI300X Hardware Burn-In (35GB VRAM)
+        # Start PyTorch MI300X Hardware Burn-In (45GB VRAM)
         if not skip_gpu:
-            self.burner.start_burn(target_gb=35)
+            self.burner.start_burn(target_gb=45)
         
         self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
         

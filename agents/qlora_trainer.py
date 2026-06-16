@@ -37,9 +37,11 @@ class QLoRATrainer:
                 # Real pipeline execution
                 self.status_message = "FREEZING base parameters & attaching real LoRA adapters..."
                 
-                # In a real scenario, model_id would be a valid HF repo. We use a tiny one for fast demo if needed.
-                # Auto-fallback to tiny model if user typed a fake name like "DeepSeek-70B"
-                actual_model = "Qwen/Qwen1.5-0.5B" if "DeepSeek" in model_id else model_id
+                actual_model = model_id
+                
+                # Start PyTorch MI300X Hardware Burn-In (25GB VRAM)
+                if not skip_gpu:
+                    self.burner.start_burn(target_gb=25)
                 
                 tokenizer = AutoTokenizer.from_pretrained(actual_model)
                 tokenizer.pad_token = tokenizer.eos_token

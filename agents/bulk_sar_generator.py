@@ -21,8 +21,9 @@ class BulkSARGenerator:
             import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer
             
-            # Using a fast open model by default to prevent 4-hour downloads during presentation
-            model_id = "Qwen/Qwen1.5-0.5B" 
+            from tabs.model_management import get_active_model_state
+            active_model = get_active_model_state()
+            model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
             
             self.tokenizer = AutoTokenizer.from_pretrained(model_id)
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -79,9 +80,9 @@ class BulkSARGenerator:
         if not self.model_loaded:
             self._initialize_vram_engine()
             
-        # Start PyTorch MI300X Hardware Burn-In (30GB VRAM) if not skipping
+        # Start PyTorch MI300X Hardware Burn-In (40GB VRAM) if not skipping
         if not skip_gpu:
-            self.burner.start_burn(target_gb=30)
+            self.burner.start_burn(target_gb=40)
             
         # Chunk the dataset into batches
         chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]

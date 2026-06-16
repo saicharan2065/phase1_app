@@ -80,9 +80,9 @@ class GNNEngine:
         # Phase 2: Compute in VRAM
         self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
         
-        # Start PyTorch MI300X Hardware Burn-In (35GB VRAM)
+        # Start PyTorch MI300X Hardware Burn-In (45GB VRAM)
         if not skip_gpu:
-            self.burner.start_burn(target_gb=35)
+            self.burner.start_burn(target_gb=45)
         
         chunk_size = 50000000 # 50 Million node chunks
         chunks = [chunk_size] * (self.total_nodes // chunk_size)

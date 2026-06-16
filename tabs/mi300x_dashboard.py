@@ -22,7 +22,10 @@ def stop_bulk_sar():
 
 def trigger_qlora(target_dataset):
     if not qlora_engine.is_training:
-        qlora_engine.start_training("gretelai/synthetic_pii_finance", "DeepSeek-70B")
+        from tabs.model_management import get_active_model_state
+        active_model = get_active_model_state()
+        model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
+        qlora_engine.start_training("gretelai/synthetic_pii_finance", model_id)
     return f"[OK] QLoRA Neural Rewiring Launched! Training on Raw Dataset: {target_dataset}. Check Global Telemetry."
 
 def stop_qlora():
@@ -61,7 +64,10 @@ def trigger_all(target_dataset, session_user):
     if not bulk_engine.is_running:
         threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False)).start()
     if not qlora_engine.is_training:
-        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", "DeepSeek-70B", False)).start()
+        from tabs.model_management import get_active_model_state
+        active_model = get_active_model_state()
+        model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
+        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", model_id, False)).start()
     if not vision_engine.is_running:
         threading.Thread(target=vision_engine.run_mass_forensics, args=(False,)).start()
     if not gnn_engine.is_running:
