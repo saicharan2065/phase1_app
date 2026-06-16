@@ -5,17 +5,19 @@ def get_role_display(username):
     role = auth_engine.get_user_role(username)
     return f"**Current Role:** {role}"
 
-def handle_request(username):
-    return auth_engine.request_admin_privilege(username)
+def handle_request(username, request: gr.Request):
+    # Dynamically extract the base URL from the incoming web request
+    base_url = str(request.headers.get("origin", "http://127.0.0.1:7860")) if request else "http://127.0.0.1:7860"
+    return auth_engine.request_admin_privilege(username, base_url)
 
 def get_requests():
-    choices = auth_engine.get_pending_admin_requests()
+    choices = auth_engine.get_pending_users()
     return gr.update(choices=choices)
 
 def handle_approve(admin_user, target_user):
     if not target_user or "No pending" in target_user:
         return "Please select a valid user to approve."
-    return auth_engine.approve_admin_request(admin_user, target_user)
+    return auth_engine.approve_user_account(admin_user, target_user)
 
 def create_account_settings_tab(session_user):
     gr.Markdown("### ⚙️ Account & Security Settings")
@@ -28,13 +30,13 @@ def create_account_settings_tab(session_user):
             request_status = gr.Textbox(label="Request Status", interactive=False)
             
         with gr.Column(scale=2):
-            gr.Markdown("#### Admin Control Panel")
-            gr.Markdown("Only current Administrators can approve pending requests.")
+            gr.Markdown("#### Admin Control Panel: User Activations")
+            gr.Markdown("Only current Administrators can activate newly registered user accounts.")
             with gr.Row():
-                pending_dropdown = gr.Dropdown(choices=["No pending requests"], label="Pending Admin Requests", scale=4)
+                pending_dropdown = gr.Dropdown(choices=["No pending registrations"], label="Pending Account Activations", scale=4)
                 refresh_btn = gr.Button("↻ Refresh", size="sm", scale=1)
                 
-            approve_btn = gr.Button("Approve Selected User", variant="primary")
+            approve_btn = gr.Button("Activate Account", variant="primary")
             approve_status = gr.Textbox(label="Action Status", interactive=False)
             
     # Load initial role when tab is rendered

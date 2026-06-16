@@ -29,10 +29,11 @@ def login_user(email, password):
     db = _load_db()
     users = db.get("users", {})
     if email in users:
-        # Check if new struct dict or old string pwd
         record = users[email]
         pwd = record.get("password") if isinstance(record, dict) else record
         if pwd == password:
+            if isinstance(record, dict) and record.get("status") == "PENDING":
+                return False, "Account pending Admin approval.", ""
             uname = record.get("username", email.split('@')[0]) if isinstance(record, dict) else email.split('@')[0]
             return True, "Login successful", uname
     return False, "Invalid email or password", ""
@@ -95,7 +96,8 @@ def verify_otp(email, otp_code):
     db = _load_db()
     db.setdefault("users", {})[email] = {
         "password": record["password"],
-        "username": record.get("username", email.split('@')[0])
+        "username": record.get("username", email.split('@')[0]),
+        "status": "PENDING"
     }
     _save_db(db)
     
@@ -111,38 +113,94 @@ def get_user_role(username):
     
     db = _load_db()
     for email, record in db.get("users", {}).items():
-        if isinstance(record, dict) and record.get("username") == username:
+        if isinstance(record, str): continue
+        record_uname = record.get("username", email.split('@')[0] if '@' in email else email)
+        if record_uname == username:
             return record.get("role", "STANDARD")
     return "STANDARD"
 
-def request_admin_privilege(username):
-    db = _load_db()
-    for email, record in db.get("users", {}).items():
-        if isinstance(record, dict) and record.get("username") == username:
-            if record.get("role") == "ADMIN":
-                return "You are already an Admin."
-            record["pending_admin"] = True
-            _save_db(db)
-            return "Admin privileges requested. Waiting for approval."
-    return "User not found."
-
-def get_pending_admin_requests():
-    db = _load_db()
-    pending = []
-    for email, record in db.get("users", {}).items():
-        if isinstance(record, dict) and record.get("pending_admin") == True:
-            pending.append(record.get("username", email))
-    return pending if pending else ["No pending requests"]
-
-def approve_admin_request(admin_user, target_user):
-    if get_user_role(admin_user) != "ADMIN":
-        return f"Error: User {admin_user} is not authorized to approve admins."
+def request_admin_privilege(username, base_url="http://127.0.0.1:7860"):
+    if not username or username == "GUEST":
+        return "You must be logged in to request privileges."
         
     db = _load_db()
     for email, record in db.get("users", {}).items():
-        if isinstance(record, dict) and record.get("username") == target_user:
-            record["role"] = "ADMIN"
-            record["pending_admin"] = False
+        # Auto-migrate legacy string records
+        if isinstance(record, str):
+            record = {"password": record, "username": email.split('@')[0] if '@' in email else email, "status": "APPROVED"}
+            db["users"][email] = record
+            
+        record_uname = record.get("username", email.split('@')[0] if '@' in email else email)
+        
+        if record_uname == username:
+            if record.get("role") == "ADMIN" or username.lower() == "admin":
+                return "You are already an Admin."
+                
+            # Generate secure token
+            import secrets
+            token = secrets.token_hex(16)
+            record["admin_token"] = token
             _save_db(db)
-            return f"Successfully granted Admin privileges to {target_user}."
+            
+            # Send Email Link to requesting user
+            try:
+                msg = MIMEMultipart()
+                msg["From"] = "pocof72065@gmail.com"
+                msg["To"] = email
+                msg["Subject"] = "Admin Privilege Approval Link"
+                
+                # Dynamic URL
+                link = f"{base_url}/?approve_admin={username}&token={token}"
+                
+                body = f"Hello {username},\n\nYou requested Admin privileges on the Financial Crime OS.\n\nClick the following link to authorize the upgrade:\n{link}\n\nDo not share this link."
+                msg.attach(MIMEText(body, "plain"))
+                
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login("pocof72065@gmail.com", "mwep jrif xapl somt")
+                    server.send_message(msg)
+                    
+                print(f"\n🔐 SECURITY: Admin approval link sent to {email} via SMTP.\n")
+                return f"Secure approval link sent to {email}. Click the link to upgrade."
+            except Exception as e:
+                return f"SMTP Error sending approval link: {str(e)}"
+                
+    return "User not found. (Are you logged in?)"
+
+def verify_admin_token(username, token):
+    if not username or not token: return False, "Missing parameters."
+    db = _load_db()
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, str): continue
+        record_uname = record.get("username", email.split('@')[0] if '@' in email else email)
+        if record_uname == username:
+            if record.get("admin_token") == token:
+                record["role"] = "ADMIN"
+                record["admin_token"] = None # Consume token
+                _save_db(db)
+                return True, f"Success! {username} has been upgraded to Admin."
+            return False, "Invalid or expired token."
+    return False, "User not found."
+
+def get_pending_users():
+    db = _load_db()
+    pending = []
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, dict) and record.get("status") == "PENDING":
+            record_uname = record.get("username", email.split('@')[0] if '@' in email else email)
+            pending.append(record_uname)
+    return pending if pending else ["No pending registrations"]
+
+def approve_user_account(admin_user, target_user):
+    if get_user_role(admin_user) != "ADMIN":
+        return f"Error: User {admin_user} is not authorized to approve accounts."
+        
+    db = _load_db()
+    for email, record in db.get("users", {}).items():
+        if isinstance(record, str): continue
+        record_uname = record.get("username", email.split('@')[0] if '@' in email else email)
+        if record_uname == target_user:
+            record["status"] = "APPROVED"
+            _save_db(db)
+            return f"Successfully activated account for {target_user}."
     return "Target user not found."

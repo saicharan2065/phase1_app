@@ -225,6 +225,7 @@ def create_app():
         session_user = gr.State("")
         
         with gr.Group(visible=True) as auth_view:
+            url_alert = gr.Markdown(visible=False)
             gr.Markdown("# 🔐 Antigravity OS - Secure Gateway")
             with gr.Tabs():
                 with gr.Tab("Login"):
@@ -363,6 +364,20 @@ def create_app():
         
         req_btn.click(fn=handle_request, inputs=[reg_user, reg_email, reg_pass], outputs=reg_status)
         ver_btn.click(fn=handle_verify, inputs=[reg_email, otp_code], outputs=ver_status)
+        
+        def check_url_tokens(request: gr.Request):
+            if request and request.query_params:
+                if "approve_admin" in request.query_params and "token" in request.query_params:
+                    uname = request.query_params.get("approve_admin")
+                    token = request.query_params.get("token")
+                    success, msg = auth_engine.verify_admin_token(uname, token)
+                    if success:
+                        return gr.update(value=f"<div style='padding:15px; background-color:#d4edda; color:#155724; border:1px solid #c3e6cb; border-radius:5px;'>✅ <b>{msg}</b></div>", visible=True)
+                    else:
+                        return gr.update(value=f"<div style='padding:15px; background-color:#f8d7da; color:#721c24; border:1px solid #f5c6cb; border-radius:5px;'>❌ <b>{msg}</b></div>", visible=True)
+            return gr.update(visible=False)
+            
+        app.load(fn=check_url_tokens, outputs=url_alert)
                 
     return app
 
