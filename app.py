@@ -112,6 +112,9 @@ button.nuclear-btn:hover { background-color: darkred !important; color: white !i
     border-radius: 8px !important;
     box-shadow: 0px 4px 15px rgba(0,0,0,0.2) !important;
 }
+.floating-chat-container .message { color: lightgreen !important; }
+.floating-chat-container p { color: lightgreen !important; }
+.gr-box, .gr-block, .gr-panel { background-color: white !important; }
 """
 
 GLOBAL_USERNAME = "GUEST"
@@ -201,9 +204,8 @@ def get_compact_metrics(request: gr.Request = None):
     ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
-    return f"""<div style="text-align: right; padding-top: 10px; font-size: 0.9em; line-height: 1.4;">
-    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Active Model:</b> {active_model}<br>
-    <b>System RAM:</b> {ram_gb_used:.1f} GB / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} GB / {hackathon_disk_total:.1f} GB ({disk_percent}%)<br>
+    return f"""<div style="text-align: right; padding-top: 5px; font-size: 0.85em; line-height: 1.2;">
+    <b>Agent:</b> <span style="color:lightgreen; font-weight:bold;">{username.upper()}</span> | <b>Model:</b> {active_model} | <b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%) | <b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)<br>
     {vram_metrics}{qlora_metrics}{vision_metrics}{gnn_metrics} | <b>MI300X VRAM:</b> {simulated_vram}
     </div>"""
 
@@ -222,6 +224,7 @@ def create_app():
                     log_status = gr.Textbox(label="Status", interactive=False)
                     
                 with gr.Tab("Register (OTP)"):
+                    reg_user = gr.Textbox(label="Username")
                     reg_email = gr.Textbox(label="Email")
                     reg_pass = gr.Textbox(label="Password", type="password")
                     req_btn = gr.Button("Request OTP")
@@ -317,15 +320,15 @@ def create_app():
             
         # Auth Logic Connections
         def handle_login(email, password):
-            success, msg = auth_engine.login_user(email, password)
+            success, msg, uname = auth_engine.login_user(email, password)
             if success:
                 global GLOBAL_USERNAME
-                GLOBAL_USERNAME = email.split('@')[0]
-                return gr.update(visible=False), gr.update(visible=True), email
+                GLOBAL_USERNAME = uname
+                return gr.update(visible=False), gr.update(visible=True), uname
             return gr.update(visible=True), gr.update(visible=False), ""
             
-        def handle_request(email, password):
-            success, msg = auth_engine.request_otp(email, password)
+        def handle_request(username, email, password):
+            success, msg = auth_engine.request_otp(email, password, username)
             return msg
             
         def handle_verify(email, otp):
@@ -343,7 +346,7 @@ def create_app():
             
         logout_btn.click(fn=handle_logout, outputs=[auth_view, os_view, session_user, log_status])
         
-        req_btn.click(fn=handle_request, inputs=[reg_email, reg_pass], outputs=reg_status)
+        req_btn.click(fn=handle_request, inputs=[reg_user, reg_email, reg_pass], outputs=reg_status)
         ver_btn.click(fn=handle_verify, inputs=[reg_email, otp_code], outputs=ver_status)
                 
     return app

@@ -7,21 +7,19 @@ trainer = QLoRATrainer()
 
 def auto_detect_dataset():
     import os
-    from huggingface_hub import scan_cache_dir
-    try:
-        cache = scan_cache_dir()
-        latest_ds = None
-        latest_time = 0
-        for repo in cache.repos:
-            if getattr(repo, "repo_type", "model") == "dataset":
-                if repo.last_modified > latest_time:
-                    latest_time = repo.last_modified
-                    latest_ds = repo.repo_id
-        if latest_ds:
-            return latest_ds
+    import glob
+    
+    # We download datasets into storage/datasets/ via the marketplace
+    ds_dir = "storage/datasets"
+    if not os.path.exists(ds_dir):
         return "No datasets found."
-    except Exception:
+        
+    files = glob.glob(os.path.join(ds_dir, "*.csv")) + glob.glob(os.path.join(ds_dir, "*.json"))
+    if not files:
         return "No datasets found."
+        
+    latest_file = max(files, key=os.path.getctime)
+    return os.path.basename(latest_file)
 
 def run_training_ui(model_id, dataset_key, dataset_file):
     dataset_id = auto_detect_dataset()

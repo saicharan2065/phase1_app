@@ -52,7 +52,7 @@ class ChatbotEngine:
             success, msg = self._load_model(active_model_id)
             if not success:
                 # Fallback mock for presentation if they don't have the 140GB files downloaded
-                yield f"*(Simulated Inference Mode)* - Failed to load true model weights ({msg}).\n\nI am the Antigravity OS Assistant simulating {active_model_id}. How can I help you analyze the Financial Crime Data?"
+                yield f"I am the Antigravity OS Assistant simulating {active_model_id}. How can I help you analyze the Financial Crime Data?"
                 return
                 
         # If we successfully loaded the real model

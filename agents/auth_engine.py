@@ -25,16 +25,21 @@ def _save_db(db):
 
 def login_user(email, password):
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return False, "Invalid email address format."
+        return False, "Invalid email address format.", ""
     db = _load_db()
     users = db.get("users", {})
-    if email in users and users[email] == password:
-        return True, "Login successful"
-    return False, "Invalid email or password"
+    if email in users:
+        # Check if new struct dict or old string pwd
+        record = users[email]
+        pwd = record.get("password") if isinstance(record, dict) else record
+        if pwd == password:
+            uname = record.get("username", email.split('@')[0]) if isinstance(record, dict) else email.split('@')[0]
+            return True, "Login successful", uname
+    return False, "Invalid email or password", ""
 
-def request_otp(email, password):
-    if not email or not password:
-        return False, "Email and password are required."
+def request_otp(email, password, username):
+    if not email or not password or not username:
+        return False, "Email, password, and username are required."
         
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return False, "Invalid email address format."
@@ -49,6 +54,7 @@ def request_otp(email, password):
     PENDING_OTPS[email] = {
         "otp": otp_code,
         "password": password,
+        "username": username,
         "expiry": time.time() + 300
     }
     
@@ -87,7 +93,10 @@ def verify_otp(email, otp_code):
         
     # Success, register user
     db = _load_db()
-    db.setdefault("users", {})[email] = record["password"]
+    db.setdefault("users", {})[email] = {
+        "password": record["password"],
+        "username": record.get("username", email.split('@')[0])
+    }
     _save_db(db)
     
     del PENDING_OTPS[email]
