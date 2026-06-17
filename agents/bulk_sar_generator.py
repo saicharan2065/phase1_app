@@ -100,3 +100,6 @@ class BulkSARGenerator:
         
     def stop(self):
         self.is_running = False
+        self.model = None
+        self.tokenizer = None
+        self.model_loaded = False

@@ -19,7 +19,7 @@ class ChatbotEngine:
         clean_model_id = active_model_id.split(" (")[0] if active_model_id and " (" in active_model_id else active_model_id
         
         # Check if we need to load or switch models
-        if vram_manager.active_model_id != clean_model_id:
+        if clean_model_id not in vram_manager.models:
             yield f"Loading {clean_model_id} into VRAM... This may take a moment for large parameters..."
             try:
                 self.is_loading = True

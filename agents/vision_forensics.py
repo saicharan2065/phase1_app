@@ -95,3 +95,6 @@ class VisionForensicsEngine:
     def stop(self):
         self.is_running = False
         self.status_message = "ABORTED"
+        self.model = None
+        self.processor = None
+        self.model_loaded = False
