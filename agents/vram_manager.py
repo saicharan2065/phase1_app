@@ -64,7 +64,15 @@ class VRAMManager:
                 "cpu": f"{ram_total_gb - 20}GiB" # Leave 20GB for OS
             }
             
-            target_device_map = "cpu" if force_cpu else "auto"
+            # STRICT HARDWARE SPLIT AS REQUESTED
+            if model_type == "vision":
+                # Vision Lab runs strictly in VRAM (GPU 0)
+                target_device_map = "cuda:0"
+                active_max_memory = None # 'cuda:0' device_map doesn't need max_memory
+            else:
+                # Processing LLMs span across VRAM and System RAM automatically
+                target_device_map = "cpu" if force_cpu else "auto"
+                active_max_memory = None if force_cpu else max_memory
             
             # MI300X ROCm PyTorch Compatibility Monkeypatch
             if not hasattr(nn.Module, "set_submodule"):
@@ -89,7 +97,7 @@ class VRAMManager:
                 self.models[model_id] = LlavaForConditionalGeneration.from_pretrained(
                     model_id,
                     device_map=target_device_map,
-                    max_memory=None if force_cpu else max_memory,
+                    max_memory=active_max_memory,
                     torch_dtype=torch.float16,
                     use_safetensors=True
                 )
@@ -98,7 +106,7 @@ class VRAMManager:
                 self.models[model_id] = AutoModelForCausalLM.from_pretrained(
                     model_id,
                     device_map=target_device_map,
-                    max_memory=None if force_cpu else max_memory,
+                    max_memory=active_max_memory,
                     torch_dtype=torch.float16,
                     trust_remote_code=True,
                     use_safetensors=True

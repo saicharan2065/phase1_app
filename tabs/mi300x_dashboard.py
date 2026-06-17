@@ -155,7 +155,10 @@ These heavy engines use the underlying hardware to process massive amounts of ra
         master_stop_btn = gr.Button("🛑 EMERGENCY ABORT ALL ENGINES", size="lg")
         reboot_server_btn = gr.Button("🔌 FORCE REBOOT SERVER (CLEARS LEAKED VRAM)", variant="stop", size="lg")
     
-    status_out = gr.Textbox(label="Command Center Terminal", interactive=False)
+    status_out = gr.Textbox(label="Command Center Master Log", interactive=False)
+    
+    gr.Markdown("### Live Engine Telemetry")
+    live_status_out = gr.Textbox(label="Internal Engine Status", interactive=False, lines=5)
     
     btn_bulk.click(fn=trigger_bulk_sar, inputs=[target_dataset], outputs=status_out)
     stop_btn_bulk.click(fn=stop_bulk_sar, outputs=status_out)
@@ -173,6 +176,29 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     master_stop_btn.click(fn=stop_all, outputs=status_out)
     
     import os
-    reboot_server_btn.click(fn=lambda: os._exit(0), outputs=status_out)
+    def nuke_server():
+        try:
+            # Kill disconnected PyTorch zombies in Linux
+            os.system("pkill -9 -f python")
+        except Exception:
+            pass
+        os._exit(0)
+        
+    reboot_server_btn.click(fn=nuke_server, outputs=status_out)
+    
+    def poll_engine_status():
+        lines = []
+        lines.append(f"Bulk SAR: {bulk_engine.status_message if bulk_engine.status_message else 'IDLE'}")
+        lines.append(f"QLoRA Studio: {qlora_engine.status_message if qlora_engine.status_message else 'IDLE'}")
+        lines.append(f"Vision Lab: {vision_engine.status_message if vision_engine.status_message else 'IDLE'}")
+        lines.append(f"GNN Topography: {gnn_engine.status_message if gnn_engine.status_message else 'IDLE'}")
+        return "\n".join(lines)
+        
+    try:
+        timer = gr.Timer(1)
+        timer.tick(fn=poll_engine_status, outputs=live_status_out)
+    except AttributeError:
+        # Fallback if Gradio version doesn't support Timer
+        pass
     
     return target_dataset, target_llm, target_vlm
