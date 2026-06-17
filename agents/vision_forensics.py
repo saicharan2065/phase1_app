@@ -15,15 +15,12 @@ class VisionForensicsEngine:
         self.findings = []
         self.model_loaded = False
         
-    def _initialize_vlm_engine(self):
+    def _initialize_vlm_engine(self, model_id):
         """Loads actual VLM into MI300X VRAM."""
-        self.status_message = "Loading real VLM into MI300X VRAM..."
+        self.status_message = f"Loading real VLM ({model_id}) into MI300X VRAM..."
         try:
             import torch
             from transformers import AutoProcessor, LlavaForConditionalGeneration
-            
-            # Use a massive multimodal model for true enterprise deep-fake detection
-            model_id = "llava-hf/llava-1.5-13b-hf"
             
             self.processor = AutoProcessor.from_pretrained(model_id)
             self.model = LlavaForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, use_safetensors=True)
@@ -67,25 +64,29 @@ class VisionForensicsEngine:
         with self._lock:
             self.processed_count += batch_size
             
-    def run_mass_forensics(self, skip_gpu=False):
+    def run_mass_forensics(self, model_id="llava-hf/llava-1.5-13b-hf", skip_gpu=False):
         self.is_running = True
         self.processed_count = 0
         self.findings = []
         
-        self.status_message = "INITIALIZING MI300X: Mounting Vision-Language Model..."
-        self._initialize_vlm_engine()
-        
-        # Batch Processing
-        
-        self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
-        
-        batch_size = 100
-        batches = [batch_size] * (self.total_documents // batch_size)
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            list(executor.map(self._process_vision_batch, batches))
+        try:
+            self.status_message = f"INITIALIZING MI300X: Mounting Vision-Language Model {model_id}..."
+            self._initialize_vlm_engine(model_id)
             
-        self.status_message = "COMPLETE: Vision Forensics Concluded."
+            # Batch Processing
+            self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
+            
+            batch_size = 100
+            batches = [batch_size] * (self.total_documents // batch_size)
+            
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                list(executor.map(self._process_vision_batch, batches))
+                
+            self.status_message = "COMPLETE: Vision Forensics Concluded."
+        except Exception as e:
+            self.status_message = f"CRASH: {str(e)}"
+            
         self.is_running = False
         return self.findings
         

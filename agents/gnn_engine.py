@@ -75,22 +75,24 @@ class GNNEngine:
         self.processed_nodes = 0
         self.findings = []
         
-        # Phase 1: Construct Adjacency Matrix in RAM
-        self.status_message = "RAM ALLOCATION: Constructing 500M Node Adjacency Matrix in 240GB System RAM..."
-        
-        # Phase 2: Compute in VRAM
-        self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
-        
-        # VRAM Compute
-
-        
-        chunk_size = 50000000 # 50 Million node chunks
-        chunks = [chunk_size] * (self.total_nodes // chunk_size)
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            list(executor.map(self._compute_graph_tensors, chunks))
+        try:
+            # Phase 1: Construct Adjacency Matrix in RAM
+            self.status_message = "RAM ALLOCATION: Constructing 500M Node Adjacency Matrix in System RAM..."
             
-        self.status_message = "COMPLETE: Global Network Analyzed."
+            # Phase 2: Compute in VRAM
+            self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
+            
+            chunk_size = 50000000 # 50 Million node chunks
+            chunks = [chunk_size] * (self.total_nodes // chunk_size)
+            
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                list(executor.map(self._compute_graph_tensors, chunks))
+                
+            self.status_message = "COMPLETE: Global Network Analyzed."
+        except Exception as e:
+            self.status_message = f"CRASH: {str(e)}"
+            
         self.is_running = False
         return self.findings
         

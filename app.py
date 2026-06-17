@@ -207,28 +207,24 @@ def get_compact_metrics(request: gr.Request = None):
     
     # Get actual role from database
     user_role = auth_engine.get_user_role(username) if username and username != "GUEST" else "STANDARD"
-        
+    
     # Calculate dynamic RAM and Disk
     ram = psutil.virtual_memory()
     ram_gb_used = ram.used / (1024**3)
+    ram_total = ram.total / (1024**3)
+    ram_percent = int(ram.percent)
     
     # Check the actual working directory mount point instead of isolated root "/"
-    # This ensures accuracy when running inside Docker or WSL bind mounts
     disk = shutil.disk_usage(os.path.abspath("."))
     disk_gb_used = disk.used / (1024**3)
-    
-    # Simulate 240GB RAM and 5TB NVMe for presentation
-    hackathon_ram_total = 240.0
-    hackathon_disk_total = 5720.0 
-    
-    ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
-    disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
+    disk_total = disk.total / (1024**3)
+    disk_percent = int((disk.used / disk.total) * 100) if disk.total > 0 else 0
     
     return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
     <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({user_role})</span></span>
     <span><b>Model:</b> {active_model}</span>
-    <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {hackathon_ram_total:.1f} GB ({ram_percent}%)</span>
-    <span><b>Disk:</b> {disk_gb_used:.1f} / {hackathon_disk_total:.1f} GB ({disk_percent}%)</span>
+    <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</span>
+    <span><b>Disk:</b> {disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</span>
     <span>{vram_metrics}</span>
     {f"<span>{qlora_metrics}</span>" if qlora_metrics else ""}
     {f"<span>{vision_metrics}</span>" if vision_metrics else ""}

@@ -30,7 +30,9 @@ class QLoRATrainer:
             from datasets import Dataset
             has_libraries = True
         except ImportError as e:
-            raise RuntimeError(f"CRITICAL ERROR: Required ML libraries missing. {str(e)}")
+            self.status_message = f"CRASH: Missing PyTorch libraries (peft/trl). Please install them. {str(e)}"
+            self.is_training = False
+            return
             
         if has_libraries:
             try:
@@ -99,8 +101,9 @@ class QLoRATrainer:
                 trainer.model.save_pretrained(save_path)
                 
             except Exception as e:
+                self.status_message = f"CRASH: QLoRA Training Failed: {str(e)}"
                 self.is_training = False
-                raise RuntimeError(f"Real QLoRA Training Failed: {str(e)}")
+                return
                 
         # 5. DEMOUNTING
         self.status_message = "DEMOUNTING: Purging VRAM. Freeing memory..."
@@ -113,8 +116,8 @@ class QLoRATrainer:
         if self.is_training:
             return "Training is already in progress!"
             
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            executor.submit(self._simulate_qlora_training, dataset_id, model_id, skip_gpu)
+        import threading
+        threading.Thread(target=self._simulate_qlora_training, args=(dataset_id, model_id, skip_gpu), daemon=True).start()
             
         return "Neural Rewiring Initialized in Background."
         
