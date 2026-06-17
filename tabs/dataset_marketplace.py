@@ -109,6 +109,10 @@ def clear_cache_ui():
     msg = dm.clear_cache()
     return refresh_cache_info()
 
+def delete_specific_ui(dataset_folder):
+    msg = dm.delete_specific_dataset(dataset_folder)
+    return refresh_cache_info()
+
 def run_comparison(source_df, ref_df, progress=gr.Progress(track_tqdm=True)):
     if source_df is None or source_df.empty or ref_df is None or ref_df.empty:
         return "Load Source and Reference datasets first.", pd.DataFrame()
@@ -203,12 +207,28 @@ def create_dataset_marketplace_tab(session_user):
             with gr.Group():
                 gr.Markdown("#### CACHE MANAGEMENT")
                 cache_info = gr.Markdown(refresh_cache_info())
-                clear_cache_btn = gr.Button("Clear Cache")
-                clear_cache_btn.click(clear_cache_ui, outputs=cache_info)
                 
                 # Make the Cache Size metric real-time
                 timer = gr.Timer(2)
                 timer.tick(fn=refresh_cache_info, outputs=cache_info)
+                
+                with gr.Row():
+                    cached_ds_dropdown = gr.Dropdown(label="Select Dataset to Delete", choices=dm.get_cached_datasets())
+                    refresh_cached_ds_btn = gr.Button("↻", size="sm")
+                
+                with gr.Row():
+                    delete_specific_btn = gr.Button("Delete Selected")
+                    clear_cache_btn = gr.Button("Nuclear Wipe (Delete All)", variant="stop")
+                    
+                clear_cache_btn.click(clear_cache_ui, outputs=cache_info).then(
+                    fn=lambda: gr.update(choices=dm.get_cached_datasets(), value=None), outputs=cached_ds_dropdown
+                )
+                
+                delete_specific_btn.click(delete_specific_ui, inputs=[cached_ds_dropdown], outputs=cache_info).then(
+                    fn=lambda: gr.update(choices=dm.get_cached_datasets(), value=None), outputs=cached_ds_dropdown
+                )
+                
+                refresh_cached_ds_btn.click(fn=lambda: gr.update(choices=dm.get_cached_datasets()), outputs=cached_ds_dropdown)
                 
 
         with gr.Column(scale=3):

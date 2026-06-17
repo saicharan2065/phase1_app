@@ -196,3 +196,34 @@ class DatasetManager:
         os.makedirs(hf_cache, exist_ok=True)
         
         return "Cache, Pointers, and Global HF Downloads cleared."
+
+    def get_cached_datasets(self):
+        """Scan the local hard drive for downloaded dataset folders."""
+        if not os.path.exists(self.cache_dir):
+            return ["No Datasets Cached"]
+        
+        folders = [d for d in os.listdir(self.cache_dir) if os.path.isdir(os.path.join(self.cache_dir, d))]
+        if not folders:
+            return ["No Datasets Cached"]
+        return folders
+
+    def delete_specific_dataset(self, dataset_folder):
+        if dataset_folder == "No Datasets Cached" or not dataset_folder:
+            return "No valid dataset selected."
+            
+        import shutil
+        import gc
+        
+        target_path = os.path.join(self.cache_dir, dataset_folder)
+        if os.path.exists(target_path):
+            # Clear Active RAM Sessions / Memory Mapped Pointers FIRST
+            global USER_WORKSPACE_DATA
+            USER_WORKSPACE_DATA.clear()
+            
+            # Force Garbage Collection to close Windows file locks
+            gc.collect()
+            
+            shutil.rmtree(target_path, ignore_errors=True)
+            return f"Successfully deleted {dataset_folder} from cache."
+            
+        return f"Dataset folder {dataset_folder} not found."
