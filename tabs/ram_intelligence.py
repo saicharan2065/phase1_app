@@ -9,20 +9,25 @@ def create_ram_intelligence_tab():
         gr.Markdown("## 2TB RAM Intelligence: Extreme Scale Analytics")
         gr.Markdown("This dashboard bypasses Graphics Card limits by utilizing your massive 2000 GB System RAM. It downloads real Hugging Face datasets and performs extreme-scale analysis on millions of rows instantly. **No simulations, no fake data.**")
         
+        from tabs.dataset_marketplace import dm
+        available_datasets = dm.get_cached_datasets()
+        
         with gr.Row():
             target_dataset = gr.Dropdown(
-                choices=[
-                    "AiresPucrs/laundry-financial-transactions",
-                    "AiresPucrs/credit-card-fraud",
-                    "AiresPucrs/synthetic-bank-transactions",
-                    "AiresPucrs/aml-laundering",
-                    "No Datasets Cached"
-                ],
-                value="AiresPucrs/laundry-financial-transactions",
+                choices=available_datasets,
+                value=available_datasets[0] if available_datasets and available_datasets[0] != "No Datasets Cached" else "No Datasets Cached",
                 label="Target Dataset (Real Hugging Face Data)",
-                allow_custom_value=True
+                allow_custom_value=True,
+                scale=4
             )
+            refresh_ds_btn = gr.Button("↻ Refresh Datasets", scale=1)
             
+        def refresh_datasets():
+            ds = dm.get_cached_datasets()
+            return gr.update(choices=ds)
+            
+        refresh_ds_btn.click(fn=refresh_datasets, outputs=target_dataset)
+
         with gr.Tabs():
             # Section 1: RAM-Based Vector Search
             with gr.TabItem("Entity Vector Memory"):
