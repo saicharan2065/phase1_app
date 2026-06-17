@@ -1,6 +1,11 @@
 import os
 os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
 
+import sys
+import types
+# MONKEYPATCH: Block transformers from auto-probing bitsandbytes, which fatally crashes on ROCm 6.0
+sys.modules['bitsandbytes'] = types.ModuleType('bitsandbytes')
+
 import gradio as gr
 import psutil
 import shutil

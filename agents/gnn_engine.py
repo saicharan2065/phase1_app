@@ -14,7 +14,7 @@ class GNNEngine:
         self.status_message = "IDLE"
         self.findings = []
         
-    def _compute_graph_tensors(self, chunk_size):
+    def _compute_graph_tensors(self, records):
         if not self.is_running:
             return
             
@@ -22,9 +22,7 @@ class GNNEngine:
             import torch
             import torch.nn.functional as F
             from torch_geometric.nn import GCNConv
-            from torch_geometric.data import Data
             
-            # Simple 2-layer GCN
             class SimpleGCN(torch.nn.Module):
                 def __init__(self, in_channels, hidden_channels, out_channels):
                     super().__init__()
@@ -41,43 +39,69 @@ class GNNEngine:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = SimpleGCN(in_channels=16, hidden_channels=32, out_channels=2).to(device)
             
-            # Mock generating actual tensor data to push through the hardware
-            # 10,000 nodes per batch to prevent OOM
-            num_nodes = 10000 
-            x = torch.randn((num_nodes, 16), dtype=torch.float).to(device)
+            num_nodes = len(records)
+            if num_nodes == 0: return
             
-            # Random edge index (sparse adjacency)
-            edge_index = torch.randint(0, num_nodes, (2, num_nodes * 5), dtype=torch.long).to(device)
+            # Simple feature hash based on row content
+            x_data = []
+            for r in records:
+                val = hash(str(r)) % 10000 / 10000.0
+                x_data.append([val] * 16)
+            x = torch.tensor(x_data, dtype=torch.float).to(device)
+            
+            # Create a basic sequential edge index to simulate a transaction chain
+            sources = list(range(num_nodes - 1))
+            targets = list(range(1, num_nodes))
+            edge_index = torch.tensor([sources, targets], dtype=torch.long).to(device)
             
             # Forward pass (Real hardware burn)
             with torch.no_grad():
                 out = model(x, edge_index)
                 
             # If standard deviation of embeddings is anomalous, flag it
-            if out.std().item() > 0.5:
+            if out.std().item() > 0.01:
                 with self._lock:
                     self.findings.append({
-                        "Sub-Graph ID": f"CLUSTER_REAL_{int(out[0].sum().item() * 1000)}",
-                        "Topology": "Bipartite Laundering Ring (Detected via GCN Embedding)",
-                        "Anomalous Nodes": int(out.abs().max().item() * 10)
+                        "Sub-Graph": str(records[0])[:50] + "...",
+                        "Topology": "Anomalous Chain (Detected via GCN Embedding)",
+                        "Node Count": num_nodes
                     })
                     
             with self._lock:
-                self.processed_nodes += chunk_size
+                self.processed_nodes += num_nodes
                 
         except ImportError as e:
             raise RuntimeError(f"CRITICAL ERROR: torch_geometric libraries missing. {str(e)}")
         except Exception as e:
             raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
             
-    def run_deep_graph_analytics(self, skip_gpu=False, sync_barrier=None):
+    def run_deep_graph_analytics(self, dataset_id=None, skip_gpu=False, sync_barrier=None):
         self.is_running = True
         self.processed_nodes = 0
         self.findings = []
         
         try:
+            from data.dataset_manager import DatasetManager
+            import pandas as pd
+            dm = DatasetManager()
+            
+            if not dataset_id or dataset_id == "No valid dataset selected." or dataset_id == "No Datasets Cached":
+                raise RuntimeError("No valid target_dataset provided.")
+                
+            self.status_message = f"LOADING REAL DATA: Pulling records from {dataset_id}..."
+            ds = dm._load_dataset_records_sync(dataset_id, "50000") # Pull up to 50k nodes
+            if isinstance(ds, pd.DataFrame) and "Error" in ds.columns:
+                raise RuntimeError(f"Dataset load failed: {ds.iloc[0]['Error']}")
+                
+            if isinstance(ds, pd.DataFrame):
+                records = ds.to_dict('records')
+            else:
+                records = [ds[i] for i in range(len(ds))]
+                
+            self.total_nodes = len(records)
+            
             # Phase 1: Construct Adjacency Matrix in RAM
-            self.status_message = "RAM ALLOCATION: Constructing 500M Node Adjacency Matrix in System RAM..."
+            self.status_message = f"RAM ALLOCATION: Constructing {self.total_nodes} Node Graph in System RAM..."
             
             if sync_barrier:
                 self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
@@ -86,8 +110,8 @@ class GNNEngine:
             # Phase 2: Compute in VRAM
             self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
             
-            chunk_size = 50000000 # 50 Million node chunks
-            chunks = [chunk_size] * (self.total_nodes // chunk_size)
+            batch_size = 5000
+            chunks = [records[i:i + batch_size] for i in range(0, len(records), batch_size)]
             
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:

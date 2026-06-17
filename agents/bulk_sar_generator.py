@@ -42,8 +42,12 @@ class BulkSARGenerator:
         if self.model_loaded:
             try:
                 import torch
-                # Create real prompts
-                prompts = [f"Write a Suspicious Activity Report for individual ID: {s}. Reason: High velocity transfers." for s in suspects]
+                # Create real prompts based on real dataset records
+                prompts = []
+                for s in suspects:
+                    # s is a dictionary representing a row from the dataset
+                    row_str = " | ".join([f"{k}: {v}" for k, v in s.items()])
+                    prompts.append(f"Write a Suspicious Activity Report for the following transaction data:\n{row_str}\nReason: High velocity transfers.")
                 
                 # Tokenize and push to MI300X VRAM
                 inputs = self.tokenizer(prompts, return_tensors="pt", padding=True, truncation=True, max_length=50)
@@ -56,7 +60,9 @@ class BulkSARGenerator:
                 decoded_reports = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
                 
                 for i, report in enumerate(decoded_reports):
-                    batch_results.append({"Suspect ID": suspects[i], "SAR Report": report.replace(prompts[i], "").strip(), "Risk Level": "HIGH"})
+                    # suspects[i] is a dictionary
+                    row_repr = str(suspects[i])[:100] + "..." # Just show a snippet of the row
+                    batch_results.append({"Dataset Row": row_repr, "SAR Report": report.replace(prompts[i], "").strip(), "Risk Level": "HIGH"})
             except Exception as e:
                 raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
         else:
@@ -66,10 +72,29 @@ class BulkSARGenerator:
             self.processed_count += len(suspects)
             self.results.extend(batch_results)
             
-    def run_bulk_inference(self, suspect_ids, batch_size=32, skip_gpu=False, sync_barrier=None):
+    def run_bulk_inference(self, dataset_id, batch_size=32, skip_gpu=False, sync_barrier=None):
         self.is_running = True
         try:
-            self.total_count = len(suspect_ids)
+            from data.dataset_manager import DatasetManager
+            dm = DatasetManager()
+            
+            # Load real dataset records
+            if dataset_id and dataset_id != "No valid dataset selected." and dataset_id != "No Datasets Cached":
+                self.status_message = f"LOADING REAL DATA: Pulling records from {dataset_id}..."
+                ds = dm._load_dataset_records_sync(dataset_id, "1000") # Limit to 1000 for realistic demo speed
+                if isinstance(ds, pd.DataFrame) and "Error" in ds.columns:
+                    raise RuntimeError(f"Dataset load failed: {ds.iloc[0]['Error']}")
+                
+                # Convert dataset to list of dictionaries
+                if isinstance(ds, pd.DataFrame):
+                    suspect_records = ds.to_dict('records')
+                else:
+                    # HuggingFace dataset
+                    suspect_records = [ds[i] for i in range(len(ds))]
+            else:
+                raise RuntimeError("No valid target_dataset provided.")
+                
+            self.total_count = len(suspect_records)
             self.processed_count = 0
             self.results = []
             
@@ -81,7 +106,7 @@ class BulkSARGenerator:
                 sync_barrier.wait()
                 
             # Chunk the dataset into batches
-            chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]
+            chunks = [suspect_records[i:i + batch_size] for i in range(0, len(suspect_records), batch_size)]
             
             # We process sequentially if using real model to prevent OOM
             for chunk in chunks:

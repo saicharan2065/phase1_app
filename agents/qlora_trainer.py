@@ -80,8 +80,37 @@ class QLoRATrainer:
                 )
                 model = get_peft_model(model, lora_config)
                 
-                # Create dummy training data to execute real PyTorch gradients
-                dummy_data = Dataset.from_dict({"text": ["This is a suspicious transaction.", "Normal payroll transfer.", "Potential money laundering detected."]})
+                from data.dataset_manager import DatasetManager
+                import pandas as pd
+                dm = DatasetManager()
+                
+                self.status_message = f"LOADING REAL DATA: Pulling records from {dataset_id}..."
+                if not dataset_id or dataset_id == "No valid dataset selected." or dataset_id == "No Datasets Cached":
+                    raise RuntimeError("No valid target_dataset provided.")
+                    
+                ds = dm._load_dataset_records_sync(dataset_id, "5000") # Limit to 5000 for realistic QLoRA run
+                if isinstance(ds, pd.DataFrame) and "Error" in ds.columns:
+                    raise RuntimeError(f"Dataset load failed: {ds.iloc[0]['Error']}")
+                
+                # Convert real dataset into training texts
+                training_texts = []
+                if isinstance(ds, pd.DataFrame):
+                    records = ds.to_dict('records')
+                else:
+                    records = [ds[i] for i in range(len(ds))]
+                    
+                for r in records:
+                    if "text" in r and isinstance(r["text"], str):
+                        training_texts.append(r["text"])
+                    else:
+                        row_str = " | ".join([f"{k}: {v}" for k, v in r.items()])
+                        training_texts.append(f"Financial Record:\n{row_str}")
+                        
+                if not training_texts:
+                    raise RuntimeError("Failed to extract training text from dataset.")
+                    
+                # Create actual training data
+                real_data = Dataset.from_dict({"text": training_texts})
                 
                 args = TrainingArguments(
                     output_dir=f"storage/adapters/{actual_model.replace('/', '_')}_checkpoints",
@@ -95,7 +124,7 @@ class QLoRATrainer:
                 
                 trainer = SFTTrainer(
                     model=model,
-                    train_dataset=dummy_data,
+                    train_dataset=real_data,
                     dataset_text_field="text",
                     max_seq_length=128,
                     args=args,
