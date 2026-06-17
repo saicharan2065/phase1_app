@@ -138,16 +138,16 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     
     with gr.Row():
         with gr.Column():
-            btn_bulk = gr.Button("🚀 Start Bulk SAR Engine (41.2 GB)")
+            btn_bulk = gr.Button("🚀 Start Bulk SAR Engine")
             stop_btn_bulk = gr.Button("🛑 Stop Bulk SAR")
         with gr.Column():
-            btn_qlora = gr.Button("🚀 Start QLoRA Studio (42.8 GB)")
+            btn_qlora = gr.Button("🚀 Start QLoRA Studio")
             stop_btn_qlora = gr.Button("🛑 Stop QLoRA")
         with gr.Column():
-            btn_vision = gr.Button("🚀 Start Vision Forensics (48.5 GB)")
+            btn_vision = gr.Button("🚀 Start Vision Forensics")
             stop_btn_vision = gr.Button("🛑 Stop Vision Lab")
         with gr.Column():
-            btn_gnn = gr.Button("🚀 Start GNN Topography (44.1 GB)")
+            btn_gnn = gr.Button("🚀 Start GNN Topography")
             stop_btn_gnn = gr.Button("🛑 Stop GNN")
             
     with gr.Row():
@@ -193,10 +193,21 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     
     def poll_engine_status():
         lines = []
-        lines.append(f"Bulk SAR: {bulk_engine.status_message if bulk_engine.status_message else 'IDLE'}")
-        lines.append(f"QLoRA Studio: {qlora_engine.status_message if qlora_engine.status_message else 'IDLE'}")
-        lines.append(f"Vision Lab: {vision_engine.status_message if vision_engine.status_message else 'IDLE'}")
-        lines.append(f"GNN Topography: {gnn_engine.status_message if gnn_engine.status_message else 'IDLE'}")
+        def format_engine(name, eng, p_attr, t_attr):
+            base_msg = getattr(eng, 'status_message', 'IDLE')
+            if not base_msg: base_msg = 'IDLE'
+            if getattr(eng, 'is_running', getattr(eng, 'is_training', False)):
+                p = getattr(eng, p_attr, 0)
+                t = getattr(eng, t_attr, 0)
+                if t > 0 and 'IDLE' not in base_msg and 'MOUNT' not in base_msg and 'WAITING' not in base_msg and 'LOADING' not in base_msg and 'TOKENIZING' not in base_msg:
+                    pct = int((p / t) * 100)
+                    return f"{name}: {base_msg} | PROGRESS: {p}/{t} ({pct}%)"
+            return f"{name}: {base_msg}"
+            
+        lines.append(format_engine("Bulk SAR", bulk_engine, "processed_count", "total_count"))
+        lines.append(format_engine("QLoRA Studio", qlora_engine, "current_epoch", "total_epochs"))
+        lines.append(format_engine("Vision Lab", vision_engine, "processed_count", "total_documents"))
+        lines.append(format_engine("GNN Topography", gnn_engine, "processed_nodes", "total_nodes"))
         return "\n".join(lines)
         
     try:

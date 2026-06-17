@@ -147,7 +147,11 @@ class QLoRATrainer:
                     self.current_epoch = epoch
                     self.progress_percent = int((epoch / self.total_epochs) * 100)
                     # Train for 1 epoch at a time just for progress bar updates
-                    args.num_train_epochs = 1
+                    
+                    import torch
+                    # Cast explicitly to float32 for CPU compatibility to prevent addmm_impl_cpu_ HalfTensor errors
+                    trainer.model.to(torch.float32)
+                    
                     trainer.train()
                 
                 self.status_message = "SAVING: Writing real PEFT Adapter file..."

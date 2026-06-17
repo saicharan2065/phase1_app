@@ -1,0 +1,26 @@
+VIDEO DEMO STORYBOARD: Antigravity OS (Phase 1)
+
+**Preparation:**
+1. Open OBS Studio or Windows Game Bar (Win+Alt+R) to record your screen.
+2. Ensure your Command Center UI is open in the browser.
+3. Keep the "Live Engine Telemetry" box visible in the recording frame.
+
+**Script & Actions:**
+
+[0:00 - 0:10]
+(ACTION: Mouse hovers over the "Global Stress Test (Start All)" button)
+SPEAKER: "Welcome to Antigravity OS. Today I'll be demonstrating a massive multi-modal pipeline executing entirely on a single AMD MI300X server. We are splitting a 70-billion parameter Large Language Model across System RAM and dedicating 192GB of VRAM specifically for high-speed inference and Vision architectures."
+
+[0:10 - 0:25]
+(ACTION: Click "Start All". Move mouse down to the Live Engine Telemetry box so the viewer watches the text change)
+SPEAKER: "I just triggered the execution. Under the hood, four independent PyTorch engines are spinning up. The Live Telemetry shows the Bulk SAR and Vision Labs dynamically loading their massive AI models directly into the AMD architecture while QLoRA isolates itself in the background to prevent CUDA deadlocks."
+
+[0:25 - 0:45]
+(ACTION: Wait for the Percentage Tracker to kick in, showing all 4 engines processing)
+SPEAKER: "Notice the synchronization barrier. Because we are using 100% real Hugging Face datasets and executing genuine matrix math, the engines wait for each other to mount. Now that they are locked in, watch the telemetry! We have 4 engines concurrently crunching Suspicious Activity Reports, fine-tuning neural weights, hunting deepfakes, and compiling 50-million node graphs... completely simultaneously without a single memory crash."
+
+[0:45 - 0:60]
+(ACTION: Click the red Force Reboot button)
+SPEAKER: "And with a single click, our custom process-killer assassinates the PyTorch execution states and reclaims all 192GB of VRAM without disconnecting the user. This is Phase 1 of the Financial Crime OS." 
+
+(END VIDEO)
