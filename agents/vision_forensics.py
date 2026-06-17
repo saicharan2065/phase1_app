@@ -16,19 +16,13 @@ class VisionForensicsEngine:
         self.model_loaded = False
         
     def _initialize_vlm_engine(self, model_id):
-        """Loads actual VLM into MI300X VRAM."""
-        self.status_message = f"Loading real VLM ({model_id}) into MI300X VRAM..."
+        """Loads actual VLM into MI300X VRAM using shared VRAM Manager."""
+        self.status_message = f"Loading real VLM ({model_id}) into MI300X VRAM/System RAM..."
         try:
-            import torch
-            from transformers import AutoProcessor, LlavaForConditionalGeneration
-            
-            self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = LlavaForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype=torch.float16, use_safetensors=True)
+            from agents.vram_manager import vram_manager
+            self.model, self.processor = vram_manager.get_or_load_model(model_id, model_type="vision")
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
-        except ImportError as e:
-            self.model_loaded = False
-            raise RuntimeError(f"CRITICAL ERROR: Transformers/PyTorch libraries missing. {str(e)}")
         except Exception as e:
             self.model_loaded = False
             raise RuntimeError(f"MI300X VRAM MOUNT FAILURE: {str(e)}")
@@ -75,9 +69,7 @@ class VisionForensicsEngine:
             
             if sync_barrier:
                 self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
-                try:
-                    sync_barrier.wait()
-                except Exception: pass
+                sync_barrier.wait()
                 
             # Batch Processing
             self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
@@ -91,22 +83,15 @@ class VisionForensicsEngine:
                 
             self.status_message = "COMPLETE: Vision Forensics Concluded."
         except Exception as e:
+            if sync_barrier:
+                try: sync_barrier.abort()
+                except Exception: pass
             self.status_message = f"CRASH: {str(e)}"
+        finally:
+            self.is_running = False
             
-        self.is_running = False
         return self.findings
         
     def stop(self):
         self.is_running = False
         self.status_message = "ABORTED"
-        
-        if self.model is not None:
-            import torch
-            import gc
-            del self.model
-            del self.processor
-            self.model = None
-            self.processor = None
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()

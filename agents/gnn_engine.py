@@ -81,9 +81,7 @@ class GNNEngine:
             
             if sync_barrier:
                 self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
-                try:
-                    sync_barrier.wait()
-                except Exception: pass
+                sync_barrier.wait()
                 
             # Phase 2: Compute in VRAM
             self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
@@ -97,9 +95,13 @@ class GNNEngine:
                 
             self.status_message = "COMPLETE: Global Network Analyzed."
         except Exception as e:
+            if sync_barrier:
+                try: sync_barrier.abort()
+                except Exception: pass
             self.status_message = f"CRASH: {str(e)}"
+        finally:
+            self.is_running = False
             
-        self.is_running = False
         return self.findings
         
     def stop(self):

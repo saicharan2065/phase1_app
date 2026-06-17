@@ -124,6 +124,9 @@ class QLoRATrainer:
                 trainer.model.save_pretrained(save_path)
                 
             except Exception as e:
+                if sync_barrier:
+                    try: sync_barrier.abort()
+                    except Exception: pass
                 self.status_message = f"CRASH: QLoRA Training Failed: {str(e)}"
                 self.is_training = False
                 return

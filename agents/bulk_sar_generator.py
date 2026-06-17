@@ -68,29 +68,35 @@ class BulkSARGenerator:
             
     def run_bulk_inference(self, suspect_ids, batch_size=32, skip_gpu=False, sync_barrier=None):
         self.is_running = True
-        self.total_count = len(suspect_ids)
-        self.processed_count = 0
-        self.results = []
-        
-        if not self.model_loaded:
-            self._initialize_vram_engine()
+        try:
+            self.total_count = len(suspect_ids)
+            self.processed_count = 0
+            self.results = []
             
-        if sync_barrier:
-            self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
-            try:
+            if not self.model_loaded:
+                self._initialize_vram_engine()
+                
+            if sync_barrier:
+                self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
                 sync_barrier.wait()
-            except Exception: pass
+                
+            # Chunk the dataset into batches
+            chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]
             
-        # Chunk the dataset into batches
-        chunks = [suspect_ids[i:i + batch_size] for i in range(0, len(suspect_ids), batch_size)]
-        
-        # We process sequentially if using real model to prevent OOM
-        for chunk in chunks:
-            if not self.is_running: break
-            self._process_batch(chunk)
-            
-        self.is_running = False
-        return self.results
+            # We process sequentially if using real model to prevent OOM
+            for chunk in chunks:
+                if not self.is_running: break
+                self._process_batch(chunk)
+                
+            return self.results
+        except Exception as e:
+            if sync_barrier:
+                try: sync_barrier.abort()
+                except Exception: pass
+            self.status_message = f"CRASH: {str(e)}"
+            return []
+        finally:
+            self.is_running = False
         
     def stop(self):
         self.is_running = False
