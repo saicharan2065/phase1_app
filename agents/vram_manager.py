@@ -86,6 +86,20 @@ class VRAMManager:
                 
             self.active_model_id = model_id
             return self.model, self.tokenizer
+            
+    def purge_vram(self):
+        with self.mount_lock:
+            if self.model is not None:
+                import torch
+                import gc
+                del self.model
+                del self.tokenizer
+                self.model = None
+                self.tokenizer = None
+                self.active_model_id = None
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
 # Global Singleton Instance
 vram_manager = VRAMManager()

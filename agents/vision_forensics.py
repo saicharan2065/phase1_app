@@ -98,5 +98,15 @@ class VisionForensicsEngine:
         
     def stop(self):
         self.is_running = False
-        self.is_running = False
         self.status_message = "ABORTED"
+        
+        if self.model is not None:
+            import torch
+            import gc
+            del self.model
+            del self.processor
+            self.model = None
+            self.processor = None
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()

@@ -18,7 +18,9 @@ def trigger_bulk_sar(target_dataset):
 
 def stop_bulk_sar():
     bulk_engine.stop()
-    return "[STOP] Bulk SAR Engine Aborted."
+    from agents.vram_manager import vram_manager
+    vram_manager.purge_vram()
+    return "[STOP] Bulk SAR Engine Aborted and VRAM Purged."
 
 def trigger_qlora(target_dataset, target_llm):
     if not qlora_engine.is_training:
@@ -30,7 +32,9 @@ def trigger_qlora(target_dataset, target_llm):
 
 def stop_qlora():
     qlora_engine.stop()
-    return "[STOP] QLoRA Engine Aborted."
+    from agents.vram_manager import vram_manager
+    vram_manager.purge_vram()
+    return "[STOP] QLoRA Engine Aborted and VRAM Purged."
 
 def trigger_vision(target_dataset, target_vlm):
     if not vision_engine.is_running:
@@ -95,6 +99,8 @@ def stop_all():
     stop_qlora()
     stop_vision()
     stop_gnn()
+    from agents.vram_manager import vram_manager
+    vram_manager.purge_vram()
     return "[🛑] GLOBAL MI300X ABORT EXECUTED! ALL VRAM PURGED."
 
 def create_mi300x_dashboard_tab(session_user):
@@ -163,4 +169,4 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     master_btn.click(fn=trigger_all, inputs=[target_dataset, target_llm, target_vlm, session_user], outputs=status_out)
     master_stop_btn.click(fn=stop_all, outputs=status_out)
     
-    return target_dataset
+    return target_dataset, target_llm, target_vlm
