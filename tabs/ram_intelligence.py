@@ -39,6 +39,7 @@ def create_ram_intelligence_tab():
                     clear_mem_btn = gr.Button("🗑️ Flush Memory", variant="stop")
                     
                 mem_status = gr.Textbox(label="Vector DB Status", interactive=False)
+                mem_progress = gr.HTML()
                 
                 with gr.Row():
                     search_query = gr.Textbox(label="Semantic Query (e.g., 'fraudulent account with massive amounts')", scale=4)
