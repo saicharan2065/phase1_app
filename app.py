@@ -2,15 +2,23 @@ import os
 os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
 
 # MONKEYPATCH: Block transformers from auto-probing bitsandbytes, which fatally crashes on ROCm 6.0
-import sys
-from unittest.mock import MagicMock
+import sys, types
+
 class MockSpec:
     origin = 'mock'
     has_location = False
     submodule_search_locations = []
-mock_bnb = MagicMock()
+
+class MockNN(types.ModuleType):
+    class Linear8bitLt: pass
+    class Linear4bit: pass
+
+mock_bnb = types.ModuleType('bitsandbytes')
+mock_nn = MockNN('bitsandbytes.nn')
+mock_bnb.nn = mock_nn
 mock_bnb.__spec__ = MockSpec()
 sys.modules['bitsandbytes'] = mock_bnb
+sys.modules['bitsandbytes.nn'] = mock_nn
 
 import gradio as gr
 import psutil

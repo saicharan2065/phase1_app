@@ -116,7 +116,7 @@ class QLoRATrainer:
                     save_steps=10,
                     logging_steps=1,
                     learning_rate=2e-4,
-                    fp16=True
+                    fp16=False # Must be False for CPU training to prevent HalfTensor backward errors
                 )
                 
                 trainer = SFTTrainer(
