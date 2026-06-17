@@ -116,18 +116,19 @@ These heavy engines use the underlying hardware to process massive amounts of ra
 """)
     
     with gr.Row():
-        from data.dataset_manager import get_user_workspace
+        from tabs.dataset_marketplace import dm
         from tabs.model_management import get_cached_hf_models
         cached_models = get_cached_hf_models()
+        cached_datasets = dm.get_cached_datasets()
         
-        target_dataset = gr.Dropdown(choices=[], label="Target Raw Input Dataset", scale=3)
+        target_dataset = gr.Dropdown(choices=cached_datasets, label="Target Raw Input Dataset", scale=3)
         target_llm = gr.Dropdown(choices=cached_models, label="Target Base LLM (QLoRA)", value="Qwen/Qwen1.5-0.5B", scale=3)
         target_vlm = gr.Dropdown(choices=cached_models, label="Target Vision Model (VLM)", value="llava-hf/llava-1.5-13b-hf", scale=3)
         refresh_ds_btn = gr.Button("↻ Refresh Workspace", scale=1)
         
     refresh_ds_btn.click(
-        fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), 
-        inputs=session_user, outputs=target_dataset
+        fn=lambda: gr.update(choices=dm.get_cached_datasets()), 
+        outputs=target_dataset
     ).then(
         fn=lambda: gr.update(choices=get_cached_hf_models()), outputs=target_llm
     ).then(

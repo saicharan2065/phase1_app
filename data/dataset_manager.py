@@ -202,7 +202,15 @@ class DatasetManager:
         if not os.path.exists(self.cache_dir):
             return ["No Datasets Cached"]
         
-        folders = [d for d in os.listdir(self.cache_dir) if os.path.isdir(os.path.join(self.cache_dir, d))]
+        folders = []
+        for d in os.listdir(self.cache_dir):
+            if os.path.isdir(os.path.join(self.cache_dir, d)):
+                # Huggingface caches repos with '___' instead of '/'
+                if "___" in d:
+                    folders.append(d.replace("___", "/"))
+                else:
+                    folders.append(d)
+                    
         if not folders:
             return ["No Datasets Cached"]
         return folders

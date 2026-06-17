@@ -305,16 +305,15 @@ def create_app():
                 with gr.Tab("MI300X Command Center") as cmd_tab:
                     cmd_ds_dropdown, cmd_llm_dropdown, cmd_vlm_dropdown = create_mi300x_dashboard_tab(session_user)
                     
-                    def refresh_dashboard(u):
-                        from data.dataset_manager import get_user_workspace
+                    def refresh_dashboard():
+                        from tabs.dataset_marketplace import dm
                         from tabs.model_management import get_cached_hf_models
-                        datasets = list(get_user_workspace(u).keys())
+                        datasets = dm.get_cached_datasets()
                         models = get_cached_hf_models()
                         return gr.update(choices=datasets), gr.update(choices=models), gr.update(choices=models)
                         
                     cmd_tab.select(
                         fn=refresh_dashboard, 
-                        inputs=session_user, 
                         outputs=[cmd_ds_dropdown, cmd_llm_dropdown, cmd_vlm_dropdown]
                     )
                     

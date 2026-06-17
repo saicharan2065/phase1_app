@@ -20,7 +20,9 @@ class VRAMManager:
         self.active_model_id = None
         self.model = None
         self.tokenizer = None
+        self.active_model_id = None
         self.mount_lock = threading.Lock()
+        self.abort_requested = False
         
     def get_or_load_model(self, model_id, use_4bit=True):
         """
@@ -83,12 +85,28 @@ class VRAMManager:
                     trust_remote_code=True,
                     use_safetensors=True
                 )
+            
+            if getattr(self, "abort_requested", False):
+                self.model = None
+                self.tokenizer = None
+                self.active_model_id = None
+                import torch, gc
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                self.abort_requested = False
+                raise RuntimeError("Model mount aborted by user.")
                 
             self.active_model_id = model_id
             return self.model, self.tokenizer
             
     def purge_vram(self):
-        with self.mount_lock:
+        acquired = self.mount_lock.acquire(blocking=False)
+        if not acquired:
+            self.abort_requested = True
+            return False
+            
+        try:
             if self.model is not None:
                 import torch
                 import gc
@@ -100,6 +118,10 @@ class VRAMManager:
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
+            self.abort_requested = False
+            return True
+        finally:
+            self.mount_lock.release()
 
 # Global Singleton Instance
 vram_manager = VRAMManager()
