@@ -183,17 +183,22 @@ class DatasetManager:
 
     def clear_cache(self):
         import shutil
-        # Clear Local Hard Drive Cache
+        import gc
+        
+        # 1. Clear Active RAM Sessions / Memory Mapped Pointers FIRST
+        global USER_WORKSPACE_DATA
+        USER_WORKSPACE_DATA.clear()
+        
+        # 2. Force Garbage Collection to close Windows file locks on memory-mapped Arrow files
+        gc.collect()
+        
+        # 3. Clear Local Hard Drive Cache
         shutil.rmtree(self.cache_dir, ignore_errors=True)
         os.makedirs(self.cache_dir, exist_ok=True)
         
-        # Clear Global Hugging Face Download Cache
+        # 4. Clear Global Hugging Face Download Cache
         hf_cache = os.path.expanduser("~/.cache/huggingface/datasets")
         shutil.rmtree(hf_cache, ignore_errors=True)
         os.makedirs(hf_cache, exist_ok=True)
         
-        # Clear Active RAM Sessions
-        global USER_WORKSPACE_DATA
-        USER_WORKSPACE_DATA.clear()
-        
-        return "Cache, RAM, and Global HF Downloads cleared."
+        return "Cache, Pointers, and Global HF Downloads cleared."
