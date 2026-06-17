@@ -178,10 +178,15 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     import os
     def nuke_server():
         try:
-            # Kill disconnected PyTorch zombies in Linux
-            os.system("pkill -9 -f python")
+            import psutil
+            import os
+            # Only kill child processes spawned by this specific Gradio server instance to prevent kicking the user out of SSH/Jupyter
+            current_process = psutil.Process(os.getpid())
+            for child in current_process.children(recursive=True):
+                child.kill()
         except Exception:
             pass
+        import os
         os._exit(0)
         
     reboot_server_btn.click(fn=nuke_server, outputs=status_out)
