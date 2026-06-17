@@ -126,12 +126,16 @@ button.nuclear-btn:hover { background-color: darkred !important; color: white !i
 GLOBAL_USERNAME = "GUEST"
 
 import time
+import threading
 # Global state for network tracking
+NET_LOCK = threading.Lock()
 LAST_NET_IO = psutil.net_io_counters()
 LAST_NET_TIME = time.time()
+LAST_DL_SPEED = 0.0
+LAST_UL_SPEED = 0.0
 
 def get_compact_metrics(request: gr.Request = None):
-    global GLOBAL_USERNAME, LAST_NET_IO, LAST_NET_TIME
+    global GLOBAL_USERNAME, LAST_NET_IO, LAST_NET_TIME, LAST_DL_SPEED, LAST_UL_SPEED
     try:
         from tabs.model_management import get_active_model_state
         active_model = get_active_model_state()
@@ -222,20 +226,21 @@ def get_compact_metrics(request: gr.Request = None):
     ram_percent = int((ram_gb_used / hackathon_ram_total) * 100)
     disk_percent = int((disk_gb_used / hackathon_disk_total) * 100)
     
-    # Calculate Network Speed
-    current_net_io = psutil.net_io_counters()
-    current_time = time.time()
-    time_delta = current_time - LAST_NET_TIME
-    
-    if time_delta > 0:
-        dl_speed_mbps = ((current_net_io.bytes_recv - LAST_NET_IO.bytes_recv) / time_delta) / (1024 * 1024)
-        ul_speed_mbps = ((current_net_io.bytes_sent - LAST_NET_IO.bytes_sent) / time_delta) / (1024 * 1024)
-    else:
-        dl_speed_mbps = 0.0
-        ul_speed_mbps = 0.0
+    # Calculate Network Speed with Thread Lock to prevent multi-tab race conditions
+    with NET_LOCK:
+        current_net_io = psutil.net_io_counters()
+        current_time = time.time()
+        time_delta = current_time - LAST_NET_TIME
         
-    LAST_NET_IO = current_net_io
-    LAST_NET_TIME = current_time
+        # Only recalculate if at least 1 second has passed
+        if time_delta >= 1.0:
+            LAST_DL_SPEED = ((current_net_io.bytes_recv - LAST_NET_IO.bytes_recv) / time_delta) / (1024 * 1024)
+            LAST_UL_SPEED = ((current_net_io.bytes_sent - LAST_NET_IO.bytes_sent) / time_delta) / (1024 * 1024)
+            LAST_NET_IO = current_net_io
+            LAST_NET_TIME = current_time
+            
+    dl_speed_mbps = LAST_DL_SPEED
+    ul_speed_mbps = LAST_UL_SPEED
     
     return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
     <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({user_role})</span></span>
