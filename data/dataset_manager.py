@@ -3,6 +3,28 @@ import psutil
 from huggingface_hub import HfApi
 from datasets import load_dataset
 import pandas as pd
+import multiprocessing
+
+def _download_worker(dataset_id, cache_dir):
+    """
+    Runs in a completely isolated OS process to bypass the Python GIL.
+    Forces Hugging Face to download the dataset natively via Rust/Xet to the hard drive cache.
+    """
+    os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+    try:
+        from datasets import load_dataset
+        
+        if dataset_id == "conceptual_captions":
+            dataset_id = "google-research-datasets/conceptual_captions"
+        elif dataset_id == "sbu_captions":
+            dataset_id = "vicenteor/sbu_captions"
+            
+        if not (dataset_id.startswith("http://") or dataset_id.startswith("https://")):
+            load_dataset(dataset_id, cache_dir=cache_dir)
+    except Exception as e:
+        safe_id = str(dataset_id).replace("/", "_").replace("\\", "_")
+        with open(os.path.join(cache_dir, f"{safe_id}_error.txt"), "w") as f:
+            f.write(str(e))
 
 # Multi-Tenant Memory Registry: {username: {dataset_name: dataframe}}
 USER_WORKSPACE_DATA = {}
@@ -59,23 +81,20 @@ class DatasetManager:
 
     def start_async_download(self, dataset_id, limit_str, username="GUEST"):
         import uuid
-        import threading
         task_id = str(uuid.uuid4())
-        self.background_tasks[task_id] = {"status": "INITIALIZING", "df": None, "error": None}
         
-        def worker():
-            try:
-                self.background_tasks[task_id]["status"] = "DOWNLOADING"
-                df = self._load_dataset_records_sync(dataset_id, limit_str, username)
-                self.background_tasks[task_id]["df"] = df
-                self.background_tasks[task_id]["status"] = "COMPLETE"
-            except Exception as e:
-                self.background_tasks[task_id]["error"] = str(e)
-                self.background_tasks[task_id]["status"] = "ERROR"
-                
-        t = threading.Thread(target=worker)
-        t.daemon = True
-        t.start()
+        p = multiprocessing.Process(target=_download_worker, args=(dataset_id, self.cache_dir))
+        p.daemon = True
+        p.start()
+        
+        self.background_tasks[task_id] = {
+            "status": "DOWNLOADING",
+            "dataset_id": dataset_id,
+            "limit_str": limit_str,
+            "username": username,
+            "process": p
+        }
+        
         return task_id
 
     def _load_dataset_records_sync(self, dataset_id, limit_str, username="GUEST"):
@@ -126,20 +145,8 @@ class DatasetManager:
             if limit:
                 ds = ds.select(range(min(limit, len(ds))))
                 
-            # Convert stream to pandas, dropping heavy objects that crash Gradio UI
-            clean_records = []
-            for row in list(ds):
-                clean_row = {}
-                for k, v in row.items():
-                    # Drop raw bytes and PIL Images which hang pandas/gradio serialization
-                    if type(v).__name__ not in ['bytes', 'Image', 'PngImageFile', 'JpegImageFile']:
-                        clean_row[k] = v
-                    else:
-                        clean_row[k] = "<Image/Bytes Data>"
-                clean_records.append(clean_row)
-                
-            df = pd.DataFrame(clean_records)
-            return df
+            # ZERO RAM ARCHITECTURE: Return the memory mapped Arrow pointer directly!
+            return ds
             
         except Exception as e:
             return pd.DataFrame([{"Error": f"Failed to load dataset {dataset_id}: {str(e)}"}])

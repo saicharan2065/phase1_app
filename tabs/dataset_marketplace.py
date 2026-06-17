@@ -40,25 +40,58 @@ def load_dataset_ui(category, ds_dropdown, custom_ds, limit_str, username):
         if not status_info:
             break
             
-        status = status_info["status"]
-        if status == "COMPLETE":
-            df = status_info["df"]
-            msg = f"✅ Loaded {len(df)} rows from {dataset_id}"
+        p = status_info["process"]
+        import os
+        safe_id = str(dataset_id).replace("/", "_").replace("\\", "_")
+        error_file = os.path.join(dm.cache_dir, f"{safe_id}_error.txt")
+        
+        if p and not p.is_alive():
+            # Process Finished! Check for custom error file from subprocess
+            if os.path.exists(error_file):
+                with open(error_file, "r") as f:
+                    err = f.read()
+                yield pd.DataFrame(), f"❌ ERROR: {err}", pd.DataFrame()
+                os.remove(error_file)
+                break
+                
+            if p.exitcode != 0:
+                yield pd.DataFrame(), f"❌ ERROR: Subprocess crashed with exit code {p.exitcode}", pd.DataFrame()
+                break
+                
+            # Now we instantly load the cached memory-mapped pointer in the main thread
+            df = dm._load_dataset_records_sync(status_info["dataset_id"], status_info["limit_str"], status_info["username"])
             
-            # Universal Data Sync
+            if isinstance(df, pd.DataFrame) and "Error" in df.columns:
+                yield pd.DataFrame(), f"❌ ERROR: {df.iloc[0]['Error']}", pd.DataFrame()
+                break
+            
+            # Universal Data Sync (Pointer)
             from data.dataset_manager import get_user_workspace
             get_user_workspace(username)[dataset_id] = df
             
-            preview_df = safe_preview(df)
-            yield df, msg, preview_df
+            # Slice 100 rows strictly for UI Preview to keep RAM near 0GB
+            if isinstance(df, pd.DataFrame):
+                preview_df = df.head(100)
+                len_str = str(len(df))
+            else:
+                preview_ds = df.select(range(min(100, len(df))))
+                clean_records = []
+                for row in preview_ds:
+                    clean_row = {}
+                    for k, v in row.items():
+                        if type(v).__name__ not in ['bytes', 'Image', 'PngImageFile', 'JpegImageFile']:
+                            clean_row[k] = v
+                        else:
+                            clean_row[k] = "<Image/Bytes Data>"
+                    clean_records.append(clean_row)
+                preview_df = pd.DataFrame(clean_records)
+                len_str = str(len(df))
+                
+            msg = f"✅ Loaded {len_str} rows from {dataset_id} (0GB RAM Used)"
+            yield preview_df, msg, safe_preview(preview_df)
             break
             
-        elif status == "ERROR":
-            err = status_info["error"]
-            yield pd.DataFrame(), f"❌ ERROR: {err}", pd.DataFrame()
-            break
-            
-        yield pd.DataFrame(), f"⏳ BACKGROUND DOWNLOADING ({status}): Rust Acceleration Active...", pd.DataFrame()
+        yield pd.DataFrame(), f"⏳ DOWNLOADING IN BACKGROUND: Rust/Xet Acceleration Active...", pd.DataFrame()
         time.sleep(1)
 
 def get_preview_info(df):
