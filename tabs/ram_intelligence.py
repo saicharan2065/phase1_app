@@ -37,6 +37,11 @@ def create_ram_intelligence_tab():
                 gr.Markdown("Click 'Build Memory' to convert every row in the real dataset into searchable text. Then, type a human sentence (like 'rapid account movement') and it will instantly find the closest matching real rows from the dataset.")
                 
                 with gr.Row():
+                    encoder_type = gr.Dropdown(
+                        ["Text-Only (MiniLM - Fast)", "Multimodal Vision (CLIP - Heavy)"],
+                        value="Text-Only (MiniLM - Fast)",
+                        label="Neural Embedding Engine"
+                    )
                     build_mem_btn = gr.Button("🧠 Build Vector Memory (Real Data)", variant="primary")
                     clear_mem_btn = gr.Button("🗑️ Flush Memory", variant="stop")
                     
@@ -44,7 +49,8 @@ def create_ram_intelligence_tab():
                 mem_progress = gr.HTML()
                 
                 with gr.Row():
-                    search_query = gr.Textbox(label="Semantic Query (e.g., 'fraudulent account with massive amounts')", scale=4)
+                    search_query = gr.Textbox(label="Semantic Query (e.g., 'fraudulent account with massive amounts')", scale=3)
+                    image_upload = gr.Image(type="filepath", label="Visual Search (Drag & Drop Image)", scale=1)
                     search_btn = gr.Button("🔍 Search Entities", scale=1)
                     
                 search_results = gr.Dataframe(label="Top Matching Entities", interactive=False)
@@ -54,15 +60,15 @@ def create_ram_intelligence_tab():
                     html = f"<div style='width: 100%; background-color: #ddd;'><div style='width: {pct}%; height: 10px; background-color: #4CAF50;'></div></div>" if pct > 0 else ""
                     return entity_memory_index.status, html
                     
-                def trigger_build_mem(ds):
+                def trigger_build_mem(ds, enc):
                     import threading
-                    t = threading.Thread(target=entity_memory_index.build_index, args=(ds, 50000))
+                    t = threading.Thread(target=entity_memory_index.build_index, args=(ds, enc, 50000))
                     t.start()
                     return "Initializing memory build sequence in background..."
                     
-                build_mem_btn.click(fn=trigger_build_mem, inputs=[target_dataset], outputs=mem_status)
+                build_mem_btn.click(fn=trigger_build_mem, inputs=[target_dataset, encoder_type], outputs=mem_status)
                 clear_mem_btn.click(fn=entity_memory_index.clear, outputs=mem_status)
-                search_btn.click(fn=entity_memory_index.search, inputs=[search_query], outputs=search_results)
+                search_btn.click(fn=entity_memory_index.search, inputs=[search_query, image_upload], outputs=search_results)
                 
                 try:
                     timer_mem = gr.Timer(2)

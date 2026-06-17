@@ -56,7 +56,8 @@ class QLoRATrainer:
                 # Real pipeline execution
                 self.status_message = "FREEZING base parameters & attaching real LoRA adapters..."
                 
-                actual_model = model_id
+                # Strip the file size suffix ' (61.03 GB)' if it exists
+                actual_model = model_id.split(" (")[0] if " (" in model_id else model_id
                 
                 from agents.vram_manager import vram_manager
                 
