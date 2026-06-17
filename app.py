@@ -32,8 +32,7 @@ from tabs.account_settings import create_account_settings_tab
 # Dataset Marketplace import
 from tabs.dataset_marketplace import create_dataset_marketplace_tab
 
-# Chatbot import
-from tabs.chatbot_ui import create_chatbot_tab
+
 
 compact_theme = gr.themes.Default(
     primary_hue="green",
@@ -398,8 +397,7 @@ def create_app():
                 with gr.Tab("MI300X GNN Engine"):
                     create_gnn_topography_tab(session_user)
                 
-            # Global floating chatbot
-            create_chatbot_tab(session_user)
+
             
         # Auth Logic Connections
         def handle_login(email, password):
@@ -459,18 +457,5 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    # Preload the Chatbot LLM into System RAM at startup
-    import threading
-    def _preload_chatbot():
-        from agents.vram_manager import vram_manager
-        print("[STARTUP] Preloading DeepSeek-R1-Distill-Qwen-32B into System RAM...")
-        try:
-            vram_manager.get_or_load_model("deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", use_4bit=False, force_cpu=True)
-            print("[STARTUP] DeepSeek-R1 32B loaded into System RAM successfully!")
-        except Exception as e:
-            print(f"[STARTUP] WARNING: Failed to preload chatbot model: {e}")
-    threading.Thread(target=_preload_chatbot, daemon=True).start()
-    
     app = create_app()
     app.launch(theme=compact_theme, css=css_override, share=True)
-

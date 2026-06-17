@@ -103,9 +103,7 @@ class QLoRATrainer:
                 
                 if sync_barrier:
                     self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
-                    try:
-                        sync_barrier.wait()
-                    except Exception: pass
+                    sync_barrier.wait()
                     
                 self.status_message = "TRAINING: Executing real PyTorch backward pass on MI300X..."
                 

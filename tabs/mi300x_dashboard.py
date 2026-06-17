@@ -12,7 +12,7 @@ master_burner = GPUBurner()
 
 def trigger_bulk_sar(target_dataset):
     if not bulk_engine.is_running:
-        t = threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32))
+        t = threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32), daemon=True)
         t.start()
     return f"[OK] Bulk SAR Engine Launched! Training on Raw Dataset: {target_dataset}. Check Global Telemetry."
 
@@ -41,7 +41,7 @@ def trigger_vision(target_dataset, target_vlm):
         clean_vlm = target_vlm.split(" (")[0] if target_vlm and " (" in target_vlm else target_vlm
         if not clean_vlm or clean_vlm == "No models installed" or clean_vlm == "None Selected":
             clean_vlm = "llava-hf/llava-1.5-13b-hf"
-        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False}).start()
+        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False}, daemon=True).start()
     return f"[OK] Vision Forensics Lab Launched! Training on Raw Dataset: {target_dataset}. Check Global Telemetry."
 
 def stop_vision():
@@ -50,7 +50,7 @@ def stop_vision():
 
 def trigger_gnn(target_dataset):
     if not gnn_engine.is_running:
-        t = threading.Thread(target=gnn_engine.run_deep_graph_analytics)
+        t = threading.Thread(target=gnn_engine.run_deep_graph_analytics, daemon=True)
         t.start()
     return f"[OK] GNN Topography Launched! Training on Raw Dataset: {target_dataset}. Check Global Telemetry."
 
@@ -84,13 +84,14 @@ def trigger_all(target_dataset, target_llm, target_vlm, session_user):
     barrier = threading.Barrier(len(engines_to_start)) if len(engines_to_start) > 0 else None
     
     if "bulk" in engines_to_start:
-        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False, barrier)).start()
+        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False, barrier), daemon=True).start()
     if "qlora" in engines_to_start:
-        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", clean_llm, False, barrier)).start()
+        # Call the training function directly (not start_training which spawns its own thread)
+        threading.Thread(target=qlora_engine._simulate_qlora_training, args=("gretelai/synthetic_pii_finance", clean_llm, False, barrier), daemon=True).start()
     if "vision" in engines_to_start:
-        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False, 'sync_barrier': barrier}).start()
+        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False, 'sync_barrier': barrier}, daemon=True).start()
     if "gnn" in engines_to_start:
-        threading.Thread(target=gnn_engine.run_deep_graph_analytics, kwargs={'skip_gpu': False, 'sync_barrier': barrier}).start()
+        threading.Thread(target=gnn_engine.run_deep_graph_analytics, kwargs={'skip_gpu': False, 'sync_barrier': barrier}, daemon=True).start()
         
     return f"[☢️] GLOBAL MI300X STRESS TEST EXECUTED ON '{target_dataset}'! REAL HARDWARE PIPELINES LAUNCHED."
         
