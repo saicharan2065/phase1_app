@@ -25,7 +25,7 @@ class ChatbotEngine:
 
         # Check if we need to load or switch models
         if clean_model_id not in vram_manager.models:
-            yield f"Loading {clean_model_id} into VRAM in FP16 (16-bit)..."
+            yield f"Loading {clean_model_id} into System RAM (CPU)..."
             try:
                 self.is_loading = True
                 # Disable 4-bit quantization and force to CPU
@@ -35,8 +35,9 @@ class ChatbotEngine:
                 self.is_loading = False
                 yield f"CRITICAL ERROR: Failed to mount LLM {active_model_id} into MI300X VRAM. Details: {str(e)}"
                 return
-        else:
-            _MODEL, _TOKENIZER = vram_manager.model, vram_manager.tokenizer
+        
+        _MODEL = vram_manager.models[clean_model_id]
+        _TOKENIZER = vram_manager.tokenizers[clean_model_id]
         
         # If we successfully loaded the real model
         try:
@@ -47,7 +48,9 @@ class ChatbotEngine:
                 prompt += f"User: {user_msg}\nAssistant: {bot_msg}\n"
             prompt += f"User: {message}\nAssistant:"
             
-            inputs = _TOKENIZER(prompt, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
+            # Send inputs to the same device as the model
+            model_device = next(_MODEL.parameters()).device
+            inputs = _TOKENIZER(prompt, return_tensors="pt").to(model_device)
             
             # We would typically use TextIteratorStreamer here, but for simplicity we generate and return
             # To actually stream token-by-token with HF is complex, we'll yield chunks of the final output
