@@ -225,8 +225,9 @@ def get_compact_metrics(request: gr.Request = None):
     # Replaced metrics block with simplified generic block for new RAM features
     hardware_status = f"""
     <div style="font-family: 'Inter', sans-serif; background: white; color: black; padding: 15px; border-radius: 8px; border: 2px solid lightgreen; margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div style="font-size: 1.1em;"><b>Agent:</b> <span style="color: darkgreen;">{username.upper() if username else 'GUEST'} ({user_role})</span></div>
+            <div style="font-size: 1.1em;"><b>Active Model:</b> <span style="color: darkgreen;">{active_model}</span></div>
             <div style="font-size: 1.1em;"><b>Sys RAM:</b> <span style="color: darkgreen;">{ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</span></div>
             <div style="font-size: 1.1em;"><b>Disk:</b> <span style="color: darkgreen;">{disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</span></div>
             <div style="font-size: 1.1em;"><b>AMD MI300X VRAM:</b> <span style="color: darkgreen;">{simulated_vram}</span></div>

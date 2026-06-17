@@ -141,3 +141,58 @@ def create_ram_intelligence_tab():
                     timer_graph.tick(fn=get_graph_metrics, outputs=[graph_status, node_box, edge_box, graph_ram_box])
                 except AttributeError:
                     pass
+
+            # Section 4: Neural Fine-Tuning
+            with gr.TabItem("Neural Fine-Tuning"):
+                gr.Markdown("### 4. Deep Learning Fine-Tuning Engine")
+                gr.Markdown("Click 'Start CPU-Bound Fine-Tuning' to train a Language Model directly on your System RAM using the real data. This bypasses the Graphics Card entirely to avoid hardware memory deadlocks.")
+                
+                from tabs.model_management import get_cached_hf_models
+                available_models = get_cached_hf_models()
+                
+                with gr.Row():
+                    model_to_tune = gr.Dropdown(
+                        choices=available_models, 
+                        value=available_models[0] if available_models and available_models[0] != "No Models Cached" else "No Models Cached", 
+                        label="Target Model to Mount",
+                        allow_custom_value=True
+                    )
+                    epochs = gr.Slider(1, 10, value=3, step=1, label="Epochs")
+                    
+                with gr.Row():
+                    start_tune_btn = gr.Button("🧠 Start CPU-Bound Fine-Tuning", variant="primary")
+                    stop_tune_btn = gr.Button("🛑 Abort Training", variant="stop")
+                    
+                tune_status = gr.Textbox(label="Training Status", interactive=False)
+                progress_bar = gr.HTML()
+                
+                def trigger_tune(ds, model, ep):
+                    from tabs.qlora_training import trainer
+                    return trainer.start_training(ds, model, ep)
+                    
+                def abort_tune():
+                    from tabs.qlora_training import trainer
+                    return trainer.abort_training()
+                    
+                def get_tune_status():
+                    from tabs.qlora_training import trainer
+                    pct = trainer.progress_percent
+                    html = f"<div style='width: 100%; background-color: #ddd;'><div style='width: {pct}%; height: 20px; background-color: lightgreen;'></div></div>"
+                    return trainer.status_message, html
+                    
+                start_tune_btn.click(fn=trigger_tune, inputs=[target_dataset, model_to_tune, epochs], outputs=tune_status)
+                stop_tune_btn.click(fn=abort_tune, outputs=tune_status)
+                
+                try:
+                    timer_tune = gr.Timer(2)
+                    timer_tune.tick(fn=get_tune_status, outputs=[tune_status, progress_bar])
+                except AttributeError:
+                    pass
+                    
+        def refresh_ui_elements():
+            ds = dm.get_cached_datasets()
+            from tabs.model_management import get_cached_hf_models
+            mods = get_cached_hf_models()
+            return gr.update(choices=ds), gr.update(choices=mods)
+            
+        refresh_ds_btn.click(fn=refresh_ui_elements, outputs=[target_dataset, model_to_tune])
