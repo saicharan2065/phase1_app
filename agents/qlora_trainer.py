@@ -41,7 +41,7 @@ class QLoRATrainer:
                     setattr(mod, name, module)
                 nn.Module.set_submodule = set_submodule
                 
-            from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
+            from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
             from peft import LoraConfig, get_peft_model
             from trl import SFTTrainer
             from datasets import Dataset

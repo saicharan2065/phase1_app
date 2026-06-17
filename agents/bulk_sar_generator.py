@@ -19,7 +19,7 @@ class BulkSARGenerator:
         self.status_message = "Loading real LLM into MI300X VRAM..."
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+            from transformers import AutoModelForCausalLM, AutoTokenizer
             from agents.vram_manager import vram_manager
             
             from tabs.model_management import get_active_model_state

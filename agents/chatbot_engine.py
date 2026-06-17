@@ -28,8 +28,8 @@ class ChatbotEngine:
             yield f"Loading {clean_model_id} into VRAM in FP16 (16-bit)..."
             try:
                 self.is_loading = True
-                # Disable 4-bit quantization to bypass BitsAndBytes ROCm 6.0 mismatch
-                _MODEL, _TOKENIZER = vram_manager.get_or_load_model(clean_model_id, use_4bit=False)
+                # Disable 4-bit quantization and force to CPU
+                _MODEL, _TOKENIZER = vram_manager.get_or_load_model(clean_model_id, use_4bit=False, force_cpu=True)
                 self.is_loading = False
             except Exception as e:
                 self.is_loading = False
