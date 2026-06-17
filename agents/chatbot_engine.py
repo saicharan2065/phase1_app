@@ -1,42 +1,10 @@
 import time
 import threading
 
-# We track the globally loaded model to avoid re-loading 70B parameters on every chat message
-_LOADED_MODEL_ID = None
-_MODEL = None
-_TOKENIZER = None
-
 class ChatbotEngine:
     def __init__(self):
         self.is_loading = False
         
-    def _load_model(self, model_id):
-        global _LOADED_MODEL_ID, _MODEL, _TOKENIZER
-        if _LOADED_MODEL_ID == model_id:
-            return True, "Model already loaded."
-            
-        self.is_loading = True
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-            
-            # Simulated 192GB VRAM optimization: device_map="auto" and fp16
-            _TOKENIZER = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-            _MODEL = AutoModelForCausalLM.from_pretrained(
-                model_id, 
-                device_map="auto", 
-                torch_dtype=torch.float16,
-                trust_remote_code=True,
-                use_safetensors=True
-            )
-            
-            _LOADED_MODEL_ID = model_id
-            self.is_loading = False
-            return True, f"Successfully loaded {model_id} into MI300X VRAM."
-        except Exception as e:
-            self.is_loading = False
-            return False, str(e)
-            
     def generate_response(self, message, history, active_model_id, username="GUEST"):
         """
         Stream back response for gradio ChatInterface
@@ -45,16 +13,22 @@ class ChatbotEngine:
             yield "Please select an Active Model in the Model Management tab first!"
             return
 
-        global _LOADED_MODEL_ID, _MODEL, _TOKENIZER
+        from agents.vram_manager import vram_manager
         
         # Check if we need to load or switch models
-        if _LOADED_MODEL_ID != active_model_id:
+        if vram_manager.active_model_id != active_model_id:
             yield f"Loading {active_model_id} into 192GB VRAM... This may take a minute for 70B parameters..."
-            success, msg = self._load_model(active_model_id)
-            if not success:
-                yield f"CRITICAL ERROR: Failed to mount LLM {active_model_id} into MI300X VRAM. Details: {msg}"
+            try:
+                self.is_loading = True
+                _MODEL, _TOKENIZER = vram_manager.get_or_load_model(active_model_id, use_4bit=True)
+                self.is_loading = False
+            except Exception as e:
+                self.is_loading = False
+                yield f"CRITICAL ERROR: Failed to mount LLM {active_model_id} into MI300X VRAM. Details: {str(e)}"
                 return
-                
+        else:
+            _MODEL, _TOKENIZER = vram_manager.model, vram_manager.tokenizer
+        
         # If we successfully loaded the real model
         try:
             import torch

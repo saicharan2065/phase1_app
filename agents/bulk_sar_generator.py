@@ -19,19 +19,14 @@ class BulkSARGenerator:
         self.status_message = "Loading real LLM into MI300X VRAM..."
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+            from agents.vram_manager import vram_manager
             
             from tabs.model_management import get_active_model_state
             active_model = get_active_model_state()
             model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
             
-            self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                device_map="auto",
-                torch_dtype=torch.float16,
-                use_safetensors=True
-            )
+            self.model, self.tokenizer = vram_manager.get_or_load_model(model_id, use_4bit=True)
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
         except ImportError as e:
