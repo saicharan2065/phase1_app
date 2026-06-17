@@ -6,8 +6,8 @@ import threading
 
 def create_ram_intelligence_tab():
     with gr.TabItem("2TB RAM Intelligence", id="ram_intel"):
-        gr.Markdown("## 2TB RAM System Intelligence Suite")
-        gr.Markdown("Executing massive multi-modal workloads entirely within System RAM using real Hugging Face datasets. Bypassing limited VRAM constraints to enable near-infinite scale.")
+        gr.Markdown("## 2TB RAM Intelligence: Extreme Scale Analytics")
+        gr.Markdown("This dashboard bypasses Graphics Card limits by utilizing your massive 2000 GB System RAM. It downloads real Hugging Face datasets and performs extreme-scale analysis on millions of rows instantly. **No simulations, no fake data.**")
         
         with gr.Row():
             target_dataset = gr.Dropdown(
@@ -26,8 +26,8 @@ def create_ram_intelligence_tab():
         with gr.Tabs():
             # Section 1: RAM-Based Vector Search
             with gr.TabItem("Entity Vector Memory"):
-                gr.Markdown("### In-Memory Semantic Vector Index")
-                gr.Markdown("Constructs massive TF-IDF vector embeddings of raw dataset rows and stores them persistently in System RAM for instantaneous semantic entity matching.")
+                gr.Markdown("### 1. Semantic Search Engine")
+                gr.Markdown("Click 'Build Memory' to convert every row in the real dataset into searchable text. Then, type a human sentence (like 'rapid account movement') and it will instantly find the closest matching real rows from the dataset.")
                 
                 with gr.Row():
                     build_mem_btn = gr.Button("🧠 Build Vector Memory (Real Data)", variant="primary")
@@ -61,8 +61,8 @@ def create_ram_intelligence_tab():
 
             # Section 2: Real-Time Scenario Simulator
             with gr.TabItem("Live Stream Processor"):
-                gr.Markdown("### Real-Time Financial Stream Simulator")
-                gr.Markdown("Sequentially streams actual records from the dataset at high velocity to simulate live banking networks.")
+                gr.Markdown("### 2. Live Data Streamer")
+                gr.Markdown("Click 'Start Live Stream' to literally stream the actual rows from the dataset into memory one-by-one, mimicking a live banking network. It flags high-risk transactions in real-time.")
                 
                 with gr.Row():
                     scenario_type = gr.Dropdown(["Structuring", "Layering", "Mule Network", "Shell Company Web"], value="Layering", label="Detection Scenario")
@@ -101,8 +101,8 @@ def create_ram_intelligence_tab():
 
             # Section 3: Massive Graph Investigation
             with gr.TabItem("NetworkX Graph Topography"):
-                gr.Markdown("### Massive Graph Investigation Engine")
-                gr.Markdown("Maps relationships between entities purely in memory to compute complex shortest paths and network centralities without hardware limitations.")
+                gr.Markdown("### 3. Massive Network Graph")
+                gr.Markdown("Click 'Construct Topology Map' to analyze the real sender/receiver columns in the dataset. It maps every single transaction as a giant web in your System RAM to find the hidden 'hubs' moving the most money.")
                 
                 with gr.Row():
                     build_graph_btn = gr.Button("🕸️ Construct Topology Map (Real Data)", variant="primary")

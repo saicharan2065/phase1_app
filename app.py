@@ -224,11 +224,12 @@ def get_compact_metrics(request: gr.Request = None):
     
     # Replaced metrics block with simplified generic block for new RAM features
     hardware_status = f"""
-    <div style="font-family: 'Courier New', monospace; background: #222; color: #0f0; padding: 15px; border-radius: 8px; border: 1px solid #444; margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between;">
-            <div><b>Sys RAM:</b> {ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</div>
-            <div><b>Disk:</b> {disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</div>
-            <div><b>AMD MI300X VRAM:</b> {simulated_vram}</div>
+    <div style="font-family: 'Inter', sans-serif; background: white; color: black; padding: 15px; border-radius: 8px; border: 2px solid lightgreen; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 1.1em;"><b>Agent:</b> <span style="color: darkgreen;">{username.upper() if username else 'GUEST'} ({user_role})</span></div>
+            <div style="font-size: 1.1em;"><b>Sys RAM:</b> <span style="color: darkgreen;">{ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</span></div>
+            <div style="font-size: 1.1em;"><b>Disk:</b> <span style="color: darkgreen;">{disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</span></div>
+            <div style="font-size: 1.1em;"><b>AMD MI300X VRAM:</b> <span style="color: darkgreen;">{simulated_vram}</span></div>
         </div>
     </div>
     """
@@ -291,7 +292,8 @@ def create_app():
             timer.tick(fn=get_compact_metrics, outputs=global_metrics)
             
             with gr.Tabs():
-
+                create_ram_intelligence_tab()
+                
                 with gr.Tab("Account Settings"):
                     create_account_settings_tab(session_user)
                     
@@ -342,7 +344,6 @@ def create_app():
                 with gr.Tab("Alerts"):
                     create_alerts_tab(session_user)
                     
-                create_ram_intelligence_tab()
 
             
         # Auth Logic Connections
