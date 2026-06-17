@@ -130,16 +130,6 @@ def create_dataset_marketplace_tab(session_user):
             s_cat.change(update_dataset_choices, inputs=[s_cat, session_user], outputs=[s_ds, s_custom])
             s_refresh_btn.click(update_dataset_choices, inputs=[s_cat, session_user], outputs=[s_ds, s_custom])
             s_limit.change(update_estimates, inputs=s_limit, outputs=s_est)
-            
-            s_load_btn.click(
-                load_dataset_ui, 
-                inputs=[s_cat, s_ds, s_custom, s_limit, session_user], 
-                outputs=[s_df_state, s_status, s_preview_table]
-            ).then(
-                get_preview_info,
-                inputs=s_df_state,
-                outputs=s_info
-            )
 
         # Reference Panel
         with gr.Column(scale=1):
@@ -164,16 +154,6 @@ def create_dataset_marketplace_tab(session_user):
             r_cat.change(update_dataset_choices, inputs=[r_cat, session_user], outputs=[r_ds, r_custom])
             r_refresh_btn.click(update_dataset_choices, inputs=[r_cat, session_user], outputs=[r_ds, r_custom])
             r_limit.change(update_estimates, inputs=r_limit, outputs=r_est)
-            
-            r_load_btn.click(
-                load_dataset_ui, 
-                inputs=[r_cat, r_ds, r_custom, r_limit, session_user], 
-                outputs=[r_df_state, r_status, r_preview_table]
-            ).then(
-                get_preview_info,
-                inputs=r_df_state,
-                outputs=r_info
-            )
 
     # Actions and Previews
     with gr.Row():
@@ -205,6 +185,26 @@ def create_dataset_marketplace_tab(session_user):
                     comp_table = gr.Dataframe(max_height=300)
                     
             # Previews are now directly yielded by the load_dataset_ui generator to avoid race conditions.
+            s_load_btn.click(
+                load_dataset_ui, 
+                inputs=[s_cat, s_ds, s_custom, s_limit, session_user], 
+                outputs=[s_df_state, s_status, s_preview_table]
+            ).then(
+                get_preview_info,
+                inputs=s_df_state,
+                outputs=s_info
+            )
+            
+            r_load_btn.click(
+                load_dataset_ui, 
+                inputs=[r_cat, r_ds, r_custom, r_limit, session_user], 
+                outputs=[r_df_state, r_status, r_preview_table]
+            ).then(
+                get_preview_info,
+                inputs=r_df_state,
+                outputs=r_info
+            )
+            
             # Compare and Swap buttons remain the same.
             
             compare_btn.click(
