@@ -116,7 +116,8 @@ class QLoRATrainer:
                     save_steps=10,
                     logging_steps=1,
                     learning_rate=2e-4,
-                    fp16=False # Must be False for CPU training to prevent HalfTensor backward errors
+                    fp16=False, # Must be False for CPU training to prevent HalfTensor backward errors
+                    use_cpu=True # CRITICAL: Prevents Trainer from probing CUDA and deadlocking with Vision Lab
                 )
                 
                 from transformers import Trainer, DataCollatorForLanguageModeling

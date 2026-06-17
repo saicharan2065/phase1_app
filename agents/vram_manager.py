@@ -37,11 +37,13 @@ class VRAMManager:
         # Fast path: return immediately if already cached (no lock needed)
         if model_id in self.models and self.models[model_id] is not None:
             return self.models[model_id], self.tokenizers.get(model_id)
-        
-        # Pick the correct lock based on target hardware
-        active_lock = self.cpu_lock if force_cpu else self.gpu_lock
-        
-        with active_lock:
+        # We MUST use a single global lock to prevent Hugging Face lazy-import deadlocks
+        # If QLoRA and Vision Lab call from_pretrained/Trainer concurrently, the Python import lock deadlocks.
+        if not hasattr(self, 'global_import_lock'):
+            import threading
+            self.global_import_lock = threading.Lock()
+            
+        with self.global_import_lock:
             # Double-check after acquiring lock (another thread may have loaded it)
             if model_id in self.models and self.models[model_id] is not None:
                 return self.models[model_id], self.tokenizers.get(model_id)
