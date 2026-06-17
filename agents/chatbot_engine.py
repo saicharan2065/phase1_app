@@ -17,7 +17,7 @@ class ChatbotEngine:
         
         # Check if we need to load or switch models
         if vram_manager.active_model_id != active_model_id:
-            yield f"Loading {active_model_id} into 192GB VRAM... This may take a minute for 70B parameters..."
+            yield f"Loading {active_model_id} into VRAM... This may take a moment for large parameters..."
             try:
                 self.is_loading = True
                 _MODEL, _TOKENIZER = vram_manager.get_or_load_model(active_model_id, use_4bit=True)

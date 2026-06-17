@@ -190,7 +190,9 @@ def get_compact_metrics(request: gr.Request = None):
     try:
         import subprocess
         import re
-        out = subprocess.check_output(['rocm-smi'], stderr=subprocess.STDOUT).decode('utf-8')
+        import shutil
+        rocm_cmd = shutil.which('rocm-smi') or '/opt/rocm/bin/rocm-smi'
+        out = subprocess.check_output([rocm_cmd], stderr=subprocess.STDOUT).decode('utf-8')
         for line in out.split('\n'):
             if line.startswith('0 ') or line.startswith('0\t'):
                 # Extract all percentages in the row (typically Fan%, VRAM%, GPU%)
@@ -226,11 +228,28 @@ def get_compact_metrics(request: gr.Request = None):
     ram_total = ram.total / (1024**3)
     ram_percent = int(ram.percent)
     
-    # Check the actual working directory mount point instead of isolated root "/"
-    disk = shutil.disk_usage(os.path.abspath("."))
-    disk_gb_used = disk.used / (1024**3)
-    disk_total = disk.total / (1024**3)
-    disk_percent = int((disk.used / disk.total) * 100) if disk.total > 0 else 0
+    # Dynamically find the largest NVMe/Disk partition to show true server storage capacity
+    disk_total = 0
+    disk_gb_used = 0
+    disk_percent = 0
+    try:
+        for part in psutil.disk_partitions(all=False):
+            if 'loop' in part.device or 'snap' in part.device: continue
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                if usage.total > disk_total * (1024**3):
+                    disk_total = usage.total / (1024**3)
+                    disk_gb_used = usage.used / (1024**3)
+                    disk_percent = int(usage.percent)
+            except Exception:
+                pass
+        if disk_total == 0: raise Exception()
+    except Exception:
+        # Fallback
+        disk = shutil.disk_usage(os.path.abspath("."))
+        disk_gb_used = disk.used / (1024**3)
+        disk_total = disk.total / (1024**3)
+        disk_percent = int((disk.used / disk.total) * 100) if disk.total > 0 else 0
     
     return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
     <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({user_role})</span></span>
