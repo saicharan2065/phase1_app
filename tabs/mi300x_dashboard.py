@@ -162,3 +162,5 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     
     master_btn.click(fn=trigger_all, inputs=[target_dataset, target_llm, target_vlm, session_user], outputs=status_out)
     master_stop_btn.click(fn=stop_all, outputs=status_out)
+    
+    return target_dataset

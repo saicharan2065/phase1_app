@@ -182,21 +182,33 @@ def get_compact_metrics(request: gr.Request = None):
         gnn_running = False
         gnn_metrics = ""
         
-    # Query real VRAM from PyTorch (AMD ROCm)
+    # Query real VRAM from PyTorch (AMD ROCm) or rocm-smi directly
+    vram_used = 0.0
+    vram_total = 192.0
+    
+    # Try rocm-smi first for the real physical MI300X metric
     try:
-        import torch
-        if torch.cuda.is_available():
-            # memory_allocated only tracks active tensors. mem_get_info tracks the entire physical GPU.
-            free_mem, total_mem = torch.cuda.mem_get_info()
-            vram_used = (total_mem - free_mem) / (1024**3)
-            vram_total = total_mem / (1024**3)
-        else:
-            vram_used = 0.0
-            vram_total = 192.0
+        import subprocess
+        import re
+        out = subprocess.check_output(['rocm-smi'], stderr=subprocess.STDOUT).decode('utf-8')
+        for line in out.split('\n'):
+            if line.startswith('0 ') or line.startswith('0\t'):
+                # Extract all percentages in the row (typically Fan%, VRAM%, GPU%)
+                pcts = re.findall(r'(\d+)%', line)
+                if len(pcts) >= 2:
+                    vram_pct = float(pcts[-2])
+                    vram_used = (vram_pct / 100.0) * 192.0
+                    break
     except Exception:
-        vram_used = 0.0
-        vram_total = 192.0
-        
+        # Fallback to PyTorch memory_allocated
+        try:
+            import torch
+            if torch.cuda.is_available():
+                # memory_allocated only tracks active tensors, avoiding the reserved memory caching bug
+                vram_used = torch.cuda.memory_allocated() / (1024**3)
+        except Exception:
+            pass
+            
     vram_percent = int((vram_used / vram_total) * 100) if vram_total > 0 else 0
     simulated_vram = f"{vram_used:.1f} GB / {vram_total:.1f} GB ({vram_percent}%)"
         
@@ -290,8 +302,10 @@ def create_app():
             
             with gr.Tabs():
                 # Hackathon Presentation Dashboard
-                with gr.Tab("MI300X Command Center"):
-                    create_mi300x_dashboard_tab(session_user)
+                with gr.Tab("MI300X Command Center") as cmd_tab:
+                    cmd_ds_dropdown = create_mi300x_dashboard_tab(session_user)
+                    from data.dataset_manager import get_user_workspace
+                    cmd_tab.select(fn=lambda u: gr.update(choices=list(get_user_workspace(u).keys())), inputs=session_user, outputs=cmd_ds_dropdown)
                     
                 with gr.Tab("Account Settings"):
                     create_account_settings_tab(session_user)
