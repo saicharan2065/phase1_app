@@ -56,13 +56,17 @@ def create_ram_intelligence_tab():
                     
                 def trigger_build_mem(ds, enc):
                     import threading
-                    # Using 50,000 rows again since VRAM acceleration is active
-                    t = threading.Thread(target=entity_memory_index.build_index, args=(ds, enc, 50000))
+                    # Sliced to 2000 to ensure CPU neural embedding finishes in seconds instead of minutes
+                    t = threading.Thread(target=entity_memory_index.build_index, args=(ds, enc, 2000))
                     t.start()
                     return "Initializing memory build sequence in background..."
                     
+                def clear_mem_and_ui():
+                    status = entity_memory_index.clear()
+                    return status, pd.DataFrame()
+                    
                 build_mem_btn.click(fn=trigger_build_mem, inputs=[target_dataset, encoder_type], outputs=mem_status)
-                clear_mem_btn.click(fn=entity_memory_index.clear, outputs=mem_status)
+                clear_mem_btn.click(fn=clear_mem_and_ui, outputs=[mem_status, search_results])
                 search_btn.click(fn=entity_memory_index.search, inputs=[search_query, image_upload], outputs=search_results)
                 
                 try:
@@ -160,9 +164,13 @@ def create_ram_intelligence_tab():
                     
                     return ram_graph_engine.status, html, f"{ram_graph_engine.node_count:,}", f"{ram_graph_engine.edge_count:,}", ram_str
                     
+                def clear_graph_and_ui():
+                    status = ram_graph_engine.clear()
+                    return status, pd.DataFrame()
+                    
                 build_graph_btn.click(fn=trigger_build_graph, inputs=[target_dataset], outputs=graph_status)
                 analyze_graph_btn.click(fn=ram_graph_engine.analyze_graph, outputs=graph_findings)
-                clear_graph_btn.click(fn=ram_graph_engine.clear, outputs=graph_status)
+                clear_graph_btn.click(fn=clear_graph_and_ui, outputs=[graph_status, graph_findings])
                 
                 try:
                     timer_graph = gr.Timer(2)

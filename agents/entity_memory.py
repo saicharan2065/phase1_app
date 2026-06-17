@@ -61,8 +61,7 @@ class EntityMemoryIndex:
                     
                 self.status = f"INITIALIZING NEURAL NET: Loading {model_name} into System RAM..."
                 
-                import torch
-                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                device = 'cpu'
                 
                 if self.neural_encoder is None or self.active_encoder != model_name:
                     from sentence_transformers import SentenceTransformer
@@ -89,6 +88,11 @@ class EntityMemoryIndex:
                             
                 texts = self.entity_data['vector_text'].tolist()
                 visuals = df[visual_col].tolist() if visual_col else None
+                
+                # CPU Vision processing is extremely slow. Truncate to 150 if using visual_col
+                if visual_col:
+                    texts = texts[:150]
+                    visuals = visuals[:150]
                 
                 total_texts = len(texts)
                 batch_size = 256 if not visual_col else 32 # Smaller batch for images to save RAM
