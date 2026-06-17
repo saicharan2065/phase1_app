@@ -208,11 +208,13 @@ def get_compact_metrics(request: gr.Request = None):
     # Get actual role from database
     user_role = auth_engine.get_user_role(username) if username and username != "GUEST" else "STANDARD"
         
-    # Calculate dynamic RAM and Disk, adding AMD Hackathon offsets to simulate massive hardware
+    # Calculate dynamic RAM and Disk
     ram = psutil.virtual_memory()
     ram_gb_used = ram.used / (1024**3)
     
-    disk = shutil.disk_usage("/")
+    # Check the actual working directory mount point instead of isolated root "/"
+    # This ensures accuracy when running inside Docker or WSL bind mounts
+    disk = shutil.disk_usage(os.path.abspath("."))
     disk_gb_used = disk.used / (1024**3)
     
     # Simulate 240GB RAM and 5TB NVMe for presentation
