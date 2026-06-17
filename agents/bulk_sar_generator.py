@@ -12,7 +12,7 @@ class BulkSARGenerator:
         self.total_count = 0
         self.results = []
         self.model_loaded = False
-        self.model_loaded = False
+        self.status_message = "IDLE"
         
     def _initialize_vram_engine(self):
         """Loads actual LLM into MI300X VRAM using PyTorch and Transformers."""
