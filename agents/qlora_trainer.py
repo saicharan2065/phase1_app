@@ -156,6 +156,13 @@ class QLoRATrainer:
                     except Exception: pass
                 self.status_message = f"CRASH: QLoRA Training Failed: {str(e)}"
                 self.is_training = False
+                
+                # Prevent VRAM Leak: Delete local variables to free PyTorch objects held by the exception traceback
+                import traceback
+                traceback.clear_frames(e.__traceback__)
+                if 'model' in locals(): del model
+                if 'trainer' in locals(): del trainer
+                import gc; gc.collect()
                 return
                 
         # 5. DEMOUNTING

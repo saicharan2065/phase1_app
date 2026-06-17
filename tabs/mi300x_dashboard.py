@@ -153,6 +153,7 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     with gr.Row():
         master_btn = gr.Button("☢️ EXECUTE MI300X GLOBAL STRESS TEST (START ALL)", variant="primary", size="lg", elem_classes="nuclear-btn")
         master_stop_btn = gr.Button("🛑 EMERGENCY ABORT ALL ENGINES", size="lg")
+        reboot_server_btn = gr.Button("🔌 FORCE REBOOT SERVER (CLEARS LEAKED VRAM)", variant="stop", size="lg")
     
     status_out = gr.Textbox(label="Command Center Terminal", interactive=False)
     
@@ -170,5 +171,8 @@ These heavy engines use the underlying hardware to process massive amounts of ra
     
     master_btn.click(fn=trigger_all, inputs=[target_dataset, target_llm, target_vlm, session_user], outputs=status_out)
     master_stop_btn.click(fn=stop_all, outputs=status_out)
+    
+    import os
+    reboot_server_btn.click(fn=lambda: os._exit(0), outputs=status_out)
     
     return target_dataset, target_llm, target_vlm

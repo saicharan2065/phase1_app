@@ -136,8 +136,10 @@ def get_compact_metrics(request: gr.Request = None):
     try:
         from tabs.model_management import get_active_model_state
         active_model = get_active_model_state()
+        if active_model == "None Selected" or not active_model:
+            active_model = "System Default"
     except Exception:
-        active_model = "None Selected"
+        active_model = "System Default"
         
     try:
         from tabs.bulk_sar import generator
