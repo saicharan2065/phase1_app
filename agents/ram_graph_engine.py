@@ -52,9 +52,16 @@ class MassiveRAMGraphEngine:
                 if s_col and r_col:
                     edges = list(zip(df[s_col], df[r_col]))
                 else:
-                    str_cols = df.select_dtypes(include=['object', 'string']).columns
-                    if len(str_cols) > 0:
-                        edges = list(zip(df.index.astype(str), df[str_cols[0]]))
+                    # Filter out PIL Image columns before falling back
+                    valid_str_cols = []
+                    for c in df.select_dtypes(include=['object', 'string']).columns:
+                        if len(df) > 0:
+                            from PIL import Image
+                            if not isinstance(df[c].iloc[0], Image.Image):
+                                valid_str_cols.append(c)
+                                
+                    if len(valid_str_cols) > 0:
+                        edges = list(zip(df.index.astype(str), df[valid_str_cols[0]]))
                     else:
                         raise RuntimeError("Dataset does not have mappable entity relationships.")
                 
@@ -118,5 +125,6 @@ class MassiveRAMGraphEngine:
             self.node_count = 0
             self.edge_count = 0
             self.ram_footprint = 0.0
+            return self.status
 
 ram_graph_engine = MassiveRAMGraphEngine()

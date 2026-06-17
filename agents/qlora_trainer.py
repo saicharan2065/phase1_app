@@ -107,6 +107,10 @@ class QLoRATrainer:
                 if not training_texts:
                     raise RuntimeError("Failed to extract training text from dataset.")
                     
+                # Truncate corpus to prevent CPU Tokenizer from locking up for minutes on 50k rows
+                # Since we are doing max_steps=15 (batch size 1), we only need 100 rows safely.
+                training_texts = training_texts[:100]
+                    
                 # Create actual training data
                 real_data = Dataset.from_dict({"text": training_texts})
                 

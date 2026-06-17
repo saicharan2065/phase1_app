@@ -7,7 +7,7 @@ import pandas as pd
 import psutil
 
 def create_ram_intelligence_tab():
-    with gr.TabItem("2TB RAM Intelligence", id="ram_intel"):
+    with gr.TabItem("2TB RAM Intelligence", id="ram_intel") as ram_intel_tab:
         gr.Markdown("## 2TB RAM Intelligence: Extreme Scale Analytics")
         gr.Markdown("This dashboard bypasses Graphics Card limits by utilizing your massive 2000 GB System RAM. It downloads real Hugging Face datasets and performs extreme-scale analysis on millions of rows instantly. **No simulations, no fake data.**")
         
@@ -23,12 +23,6 @@ def create_ram_intelligence_tab():
                 scale=4
             )
             refresh_ds_btn = gr.Button("↻ Refresh Datasets", scale=1)
-            
-        def refresh_datasets():
-            ds = dm.get_cached_datasets()
-            return gr.update(choices=ds)
-            
-        refresh_ds_btn.click(fn=refresh_datasets, outputs=target_dataset)
 
         with gr.Tabs():
             # Section 1: RAM-Based Vector Search
@@ -201,11 +195,13 @@ def create_ram_intelligence_tab():
                 
                 def trigger_tune(ds, model, ep):
                     from tabs.qlora_training import trainer
-                    return trainer.start_training(ds, model, ep)
+                    trainer.total_epochs = int(ep)
+                    return trainer.start_training(ds, model, skip_gpu=True)
                     
                 def abort_tune():
                     from tabs.qlora_training import trainer
-                    return trainer.abort_training()
+                    trainer.stop()
+                    return trainer.status_message
                     
                 def get_tune_status():
                     from tabs.qlora_training import trainer
@@ -226,6 +222,8 @@ def create_ram_intelligence_tab():
             ds = dm.get_cached_datasets()
             from tabs.model_management import get_cached_hf_models
             mods = get_cached_hf_models()
-            return gr.update(choices=ds), gr.update(choices=mods)
+            return gr.update(choices=ds, value=ds[0] if ds and ds[0] != "No Datasets Cached" else "No Datasets Cached"), gr.update(choices=mods, value=mods[0] if mods and mods[0] != "No models installed" else "No models installed")
+            
+        ram_intel_tab.select(fn=refresh_ui_elements, outputs=[target_dataset, model_to_tune])
             
         refresh_ds_btn.click(fn=refresh_ui_elements, outputs=[target_dataset, model_to_tune])
