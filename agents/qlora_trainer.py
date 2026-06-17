@@ -119,12 +119,19 @@ class QLoRATrainer:
                     fp16=False # Must be False for CPU training to prevent HalfTensor backward errors
                 )
                 
-                trainer = SFTTrainer(
+                from transformers import Trainer, DataCollatorForLanguageModeling
+                
+                def tokenize_function(examples):
+                    return self.tokenizer(examples["text"], padding="max_length", truncation=True, max_length=512)
+                    
+                self.status_message = "TOKENIZING: Preparing data for QLoRA..."
+                tokenized_data = real_data.map(tokenize_function, batched=True)
+                
+                trainer = Trainer(
                     model=model_peft,
-                    train_dataset=real_data,
-                    dataset_text_field="text",
-                    max_seq_length=512,
+                    train_dataset=tokenized_data,
                     args=args,
+                    data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False)
                 )
                 
                 if sync_barrier:
