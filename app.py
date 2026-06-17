@@ -41,11 +41,7 @@ from tabs.risk_clusters import create_risk_clusters_tab
 from tabs.investigations import create_investigations_tab
 from tabs.case_management import create_case_management_tab
 from tabs.alerts import create_alerts_tab
-from tabs.bulk_sar import create_bulk_sar_tab
-from tabs.qlora_training import create_qlora_tab
-from tabs.vision_lab import create_vision_lab_tab
-from tabs.gnn_topography import create_gnn_topography_tab
-from tabs.mi300x_dashboard import create_mi300x_dashboard_tab
+from tabs.ram_intelligence import create_ram_intelligence_tab
 from tabs.account_settings import create_account_settings_tab
 
 # Dataset Marketplace import
@@ -155,52 +151,7 @@ def get_compact_metrics(request: gr.Request = None):
     except Exception:
         active_model = "System Default"
         
-    try:
-        from tabs.bulk_sar import generator
-        bulk_running = generator.is_running or generator.model_loaded
-        if generator.is_running:
-            if not generator.model_loaded:
-                vram_metrics = f"<b>VRAM Engine:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>MOUNTING LLM...</span>"
-            else:
-                vram_metrics = f"<b>VRAM Engine:</b> <span style='color:orange'>PROCESSING ({generator.processed_count}/{generator.total_count})</span>"
-        else:
-            vram_metrics = f"<b>VRAM Engine:</b> <span style='color:lightgreen'>IDLE</span>"
-    except Exception:
-        bulk_running = False
-        vram_metrics = "<b>VRAM Engine:</b> OFFLINE"
-        
-    try:
-        from tabs.qlora_training import trainer
-        qlora_running = trainer.is_training
-        if trainer.is_training:
-            qlora_metrics = f" | <b>QLoRA:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>TRAINING ({trainer.progress_percent}%)</span>"
-        else:
-            qlora_metrics = f" | <b>QLoRA:</b> <span style='color:lightgreen'>IDLE</span>"
-    except Exception:
-        qlora_running = False
-        qlora_metrics = ""
-        
-    try:
-        from tabs.vision_lab import vision_engine
-        vision_running = vision_engine.is_running
-        if vision_engine.is_running:
-            vision_metrics = f" | <b>Vision Lab:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>PROCESSING BATCH</span>"
-        else:
-            vision_metrics = f" | <b>Vision Lab:</b> <span style='color:lightgreen'>IDLE</span>"
-    except Exception:
-        vision_running = False
-        vision_metrics = ""
-        
-    try:
-        from tabs.gnn_topography import gnn_engine
-        gnn_running = gnn_engine.is_running
-        if gnn_engine.is_running:
-            gnn_metrics = f" | <b>GNN Engine:</b> <span style='color:orange; animation: blinker 1s linear infinite;'>COMPUTING TENSORS</span>"
-        else:
-            gnn_metrics = f" | <b>GNN Engine:</b> <span style='color:lightgreen'>IDLE</span>"
-    except Exception:
-        gnn_running = False
-        gnn_metrics = ""
+    # Removed broken hardware engine polling logic
         
     # Query real VRAM from PyTorch (AMD ROCm) or rocm-smi directly
     vram_used = 0.0
@@ -271,17 +222,17 @@ def get_compact_metrics(request: gr.Request = None):
         disk_total = disk.total / (1024**3)
         disk_percent = int((disk.used / disk.total) * 100) if disk.total > 0 else 0
     
-    return f"""<div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 10px; font-size: 1.1em; background-color: white; border: 1px solid lightgray; border-radius: 5px;">
-    <span><b>Agent:</b> <span style="color:darkgreen; font-weight:bold;">{username.upper() if username else 'GUEST'} ({user_role})</span></span>
-    <span><b>Model:</b> {active_model}</span>
-    <span><b>Sys RAM:</b> {ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</span>
-    <span><b>Disk:</b> {disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</span>
-    <span>{vram_metrics}</span>
-    {f"<span>{qlora_metrics}</span>" if qlora_metrics else ""}
-    {f"<span>{vision_metrics}</span>" if vision_metrics else ""}
-    {f"<span>{gnn_metrics}</span>" if gnn_metrics else ""}
-    <span><b>MI300X VRAM:</b> {simulated_vram}</span>
-    </div>"""
+    # Replaced metrics block with simplified generic block for new RAM features
+    hardware_status = f"""
+    <div style="font-family: 'Courier New', monospace; background: #222; color: #0f0; padding: 15px; border-radius: 8px; border: 1px solid #444; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between;">
+            <div><b>Sys RAM:</b> {ram_gb_used:.1f} / {ram_total:.1f} GB ({ram_percent}%)</div>
+            <div><b>Disk:</b> {disk_gb_used:.1f} / {disk_total:.1f} GB ({disk_percent}%)</div>
+            <div><b>AMD MI300X VRAM:</b> {simulated_vram}</div>
+        </div>
+    </div>
+    """
+    return gr.update(value=hardware_status)
 
 def create_app():
     with gr.Blocks(title="Financial Crime OS") as app:
@@ -406,18 +357,7 @@ def create_app():
                 with gr.Tab("Alerts"):
                     create_alerts_tab(session_user)
                     
-                with gr.Tab("Bulk SAR Engine"):
-                    create_bulk_sar_tab(session_user)
-                    
-                with gr.Tab("QLoRA Studio"):
-                    create_qlora_tab(session_user)
-                    
-                with gr.Tab("MI300X Vision Lab"):
-                    create_vision_lab_tab(session_user)
-                    
-                with gr.Tab("MI300X GNN Engine"):
-                    create_gnn_topography_tab(session_user)
-                
+                create_ram_intelligence_tab()
 
             
         # Auth Logic Connections
