@@ -224,7 +224,16 @@ def create_dataset_marketplace_tab(session_user):
                     fn=lambda: gr.update(choices=dm.get_cached_datasets(), value=None), outputs=cached_ds_dropdown
                 )
                 
-                delete_specific_btn.click(delete_specific_ui, inputs=[cached_ds_dropdown], outputs=cache_info).then(
+                delete_specific_btn.click(
+                    clear_datasets,
+                    outputs=[s_df_state, r_df_state, s_status, r_status]
+                ).then(
+                    lambda: pd.DataFrame(), outputs=s_preview_table
+                ).then(
+                    lambda: pd.DataFrame(), outputs=r_preview_table
+                ).then(
+                    delete_specific_ui, inputs=[cached_ds_dropdown], outputs=cache_info
+                ).then(
                     fn=lambda: gr.update(choices=dm.get_cached_datasets(), value=None), outputs=cached_ds_dropdown
                 )
                 

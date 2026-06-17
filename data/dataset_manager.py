@@ -223,7 +223,10 @@ class DatasetManager:
             # Force Garbage Collection to close Windows file locks
             gc.collect()
             
-            shutil.rmtree(target_path, ignore_errors=True)
-            return f"Successfully deleted {dataset_folder} from cache."
+            try:
+                shutil.rmtree(target_path, ignore_errors=False)
+                return f"Successfully deleted {dataset_folder} from cache."
+            except Exception as e:
+                return f"❌ Failed to delete (File Locked): Close the dataset in the UI or restart the server. ({str(e)})"
             
         return f"Dataset folder {dataset_folder} not found."
