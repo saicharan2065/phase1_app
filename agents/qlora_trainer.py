@@ -109,9 +109,17 @@ class QLoRATrainer:
                 # Create actual training data
                 real_data = Dataset.from_dict({"text": training_texts})
                 
+                from transformers import TrainerCallback
+                
+                class LiveProgressCallback(TrainerCallback):
+                    def on_step_end(self, args, state, control, **kwargs):
+                        # Update the global progress bar based on real PyTorch optimization steps
+                        trainer_instance.progress_percent = int((state.global_step / state.max_steps) * 100)
+                        trainer_instance.status_message = f"TRAINING: Step {state.global_step}/{state.max_steps} (Loss: {state.log_history[-1].get('loss', '...') if state.log_history else '...'})"
+
                 args = TrainingArguments(
                     output_dir=f"storage/adapters/{actual_model.replace('/', '_')}_checkpoints",
-                    num_train_epochs=self.total_epochs,
+                    max_steps=self.total_epochs * 5, # Fast CPU training (real steps, not simulated)
                     per_device_train_batch_size=1,
                     save_steps=10,
                     logging_steps=1,
@@ -132,28 +140,26 @@ class QLoRATrainer:
                     model=model_peft,
                     train_dataset=tokenized_data,
                     args=args,
-                    data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False)
+                    data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
+                    callbacks=[LiveProgressCallback()]
                 )
                 
                 if sync_barrier:
                     self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
                     sync_barrier.wait()
                     
-                self.status_message = "TRAINING: Executing real PyTorch backward pass on MI300X..."
+                self.status_message = "TRAINING: Executing real PyTorch backward pass on CPU..."
                 
-                # We can't easily hook into Trainer for live progress bars in gradio without a custom callback
-                # So we just run it and update progress manually
-                for epoch in range(1, self.total_epochs + 1):
-                    if not self.is_training: break
-                    self.current_epoch = epoch
-                    self.progress_percent = int((epoch / self.total_epochs) * 100)
-                    # Train for 1 epoch at a time just for progress bar updates
-                    
-                    import torch
-                    # Cast explicitly to float32 for CPU compatibility to prevent addmm_impl_cpu_ HalfTensor errors
-                    trainer.model.to(torch.float32)
-                    
-                    trainer.train()
+                import torch
+                # Cast explicitly to float32 for CPU compatibility to prevent addmm_impl_cpu_ HalfTensor errors
+                trainer.model.to(torch.float32)
+                
+                # Assign self to global scope for the callback to update
+                global trainer_instance
+                trainer_instance = self
+                
+                # Execute the real PyTorch training loop
+                trainer.train()
                 
                 self.status_message = "SAVING: Writing real PEFT Adapter file..."
                 save_path = f"storage/adapters/{actual_model.replace('/', '_')}_qlora"

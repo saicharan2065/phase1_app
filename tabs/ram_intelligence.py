@@ -46,13 +46,16 @@ def create_ram_intelligence_tab():
                     
                 search_results = gr.Dataframe(label="Top Matching Entities", interactive=False)
                 
+                def get_mem_status():
+                    pct = getattr(entity_memory_index, 'progress_percent', 0)
+                    html = f"<div style='width: 100%; background-color: #ddd;'><div style='width: {pct}%; height: 10px; background-color: #4CAF50;'></div></div>" if pct > 0 else ""
+                    return entity_memory_index.status, html
+                    
                 def trigger_build_mem(ds):
+                    import threading
                     t = threading.Thread(target=entity_memory_index.build_index, args=(ds, 50000))
                     t.start()
-                    return "Initializing memory build sequence..."
-                    
-                def get_mem_status():
-                    return entity_memory_index.status
+                    return "Initializing memory build sequence in background..."
                     
                 build_mem_btn.click(fn=trigger_build_mem, inputs=[target_dataset], outputs=mem_status)
                 clear_mem_btn.click(fn=entity_memory_index.clear, outputs=mem_status)
@@ -60,7 +63,7 @@ def create_ram_intelligence_tab():
                 
                 try:
                     timer_mem = gr.Timer(2)
-                    timer_mem.tick(fn=get_mem_status, outputs=mem_status)
+                    timer_mem.tick(fn=get_mem_status, outputs=[mem_status, mem_progress])
                 except AttributeError:
                     pass
 
@@ -78,15 +81,31 @@ def create_ram_intelligence_tab():
                     start_stream_btn = gr.Button("⚡ Start Live Stream", variant="primary")
                     stop_stream_btn = gr.Button("🛑 Stop Stream", variant="stop")
                     
-                stream_status = gr.Textbox(label="Stream Engine Status", interactive=False)
+                stream_status = gr.Textbox(label="Engine Status", interactive=False)
+                stream_progress = gr.HTML()
                 
                 with gr.Row():
-                    processed_box = gr.Textbox(label="Total Processed", interactive=False)
-                    alerts_box = gr.Textbox(label="Total Alerts", interactive=False)
-                    risk_box = gr.Textbox(label="Average Risk Score", interactive=False)
+                    processed_box = gr.Textbox(label="Entities Processed", interactive=False)
+                    alerts_box = gr.Textbox(label="Neural Alerts Triggered", interactive=False)
+                    risk_box = gr.Textbox(label="Avg Live Risk", interactive=False)
                     ram_box = gr.Textbox(label="RAM Footprint", interactive=False)
                     
-                live_table = gr.Dataframe(label="Live High-Risk Entities", interactive=False)
+                live_table = gr.Dataframe(label="High Risk Stream Log", interactive=False)
+                
+                def get_stream_metrics():
+                    df = pd.DataFrame(scenario_simulator.live_entities)
+                    ram_str = f"{psutil.Process().memory_info().rss / (1024*1024*1024):.2f} GB"
+                    pct = getattr(scenario_simulator, 'progress_percent', 0)
+                    html = f"<div style='width: 100%; background-color: #ddd;'><div style='width: {pct}%; height: 10px; background-color: #FF5722;'></div></div>" if pct > 0 else ""
+                    return (
+                        scenario_simulator.status,
+                        html,
+                        str(scenario_simulator.total_processed),
+                        str(scenario_simulator.total_alerts),
+                        f"{scenario_simulator.current_risk_avg:.1f}%",
+                        ram_str,
+                        df
+                    )
                 
                 start_stream_btn.click(
                     fn=scenario_simulator.start_stream, 
@@ -98,8 +117,8 @@ def create_ram_intelligence_tab():
                 try:
                     timer_stream = gr.Timer(1)
                     timer_stream.tick(
-                        fn=scenario_simulator.get_metrics, 
-                        outputs=[stream_status, processed_box, alerts_box, risk_box, ram_box, live_table]
+                        fn=get_stream_metrics, 
+                        outputs=[stream_status, stream_progress, processed_box, alerts_box, risk_box, ram_box, live_table]
                     )
                 except AttributeError:
                     pass
@@ -115,6 +134,7 @@ def create_ram_intelligence_tab():
                     clear_graph_btn = gr.Button("🗑️ Flush Topology", variant="stop")
                     
                 graph_status = gr.Textbox(label="Graph Engine Status", interactive=False)
+                graph_progress = gr.HTML()
                 
                 with gr.Row():
                     node_box = gr.Textbox(label="Total Nodes", interactive=False)
@@ -130,7 +150,11 @@ def create_ram_intelligence_tab():
                     
                 def get_graph_metrics():
                     ram_str = f"{ram_graph_engine.ram_footprint:.2f} GB"
-                    return ram_graph_engine.status, f"{ram_graph_engine.node_count:,}", f"{ram_graph_engine.edge_count:,}", ram_str
+                    
+                    pct = getattr(ram_graph_engine, 'progress_percent', 0)
+                    html = f"<div style='width: 100%; background-color: #ddd;'><div style='width: {pct}%; height: 10px; background-color: #2196F3;'></div></div>" if pct > 0 else ""
+                    
+                    return ram_graph_engine.status, html, f"{ram_graph_engine.node_count:,}", f"{ram_graph_engine.edge_count:,}", ram_str
                     
                 build_graph_btn.click(fn=trigger_build_graph, inputs=[target_dataset], outputs=graph_status)
                 analyze_graph_btn.click(fn=ram_graph_engine.analyze_graph, outputs=graph_findings)
@@ -138,7 +162,7 @@ def create_ram_intelligence_tab():
                 
                 try:
                     timer_graph = gr.Timer(2)
-                    timer_graph.tick(fn=get_graph_metrics, outputs=[graph_status, node_box, edge_box, graph_ram_box])
+                    timer_graph.tick(fn=get_graph_metrics, outputs=[graph_status, graph_progress, node_box, edge_box, graph_ram_box])
                 except AttributeError:
                     pass
 

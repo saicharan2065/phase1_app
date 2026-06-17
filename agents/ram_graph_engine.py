@@ -14,9 +14,11 @@ class MassiveRAMGraphEngine:
         self.edge_count = 0
         self.ram_footprint = 0.0
         self.findings = []
+        self.progress_percent = 0
         
     def build_graph(self, dataset_id, max_records=200000):
         with self.build_lock:
+            self.progress_percent = 0
             self.status = f"PULLING REAL DATA: Fetching {max_records} records from {dataset_id}..."
             try:
                 from data.dataset_manager import DatasetManager
@@ -29,6 +31,7 @@ class MassiveRAMGraphEngine:
                 if isinstance(ds, pd.DataFrame) and "Error" in ds.columns:
                     raise RuntimeError(f"Dataset load failed: {ds.iloc[0]['Error']}")
                 
+                self.progress_percent = 10
                 self.status = "CONSTRUCTING: Mapping real entities into NetworkX RAM graph..."
                 
                 if isinstance(ds, pd.DataFrame):
@@ -36,6 +39,7 @@ class MassiveRAMGraphEngine:
                 else:
                     df = pd.DataFrame([ds[i] for i in range(len(ds))])
                 
+                self.progress_percent = 20
                 # Attempt to find sender/receiver columns dynamically for a real edge map
                 sender_cols = ['nameOrig', 'Sender', 'Originator', 'Account', 'Source']
                 receiver_cols = ['nameDest', 'Receiver', 'Beneficiary', 'Destination', 'Target']
@@ -46,27 +50,33 @@ class MassiveRAMGraphEngine:
                 self.G.clear()
                 
                 if s_col and r_col:
-                    # Pure real data mapping
                     edges = list(zip(df[s_col], df[r_col]))
-                    self.G.add_edges_from(edges)
                 else:
-                    # Fallback mapping if standard columns don't exist: connect index to first string column
                     str_cols = df.select_dtypes(include=['object', 'string']).columns
                     if len(str_cols) > 0:
                         edges = list(zip(df.index.astype(str), df[str_cols[0]]))
-                        self.G.add_edges_from(edges)
                     else:
                         raise RuntimeError("Dataset does not have mappable entity relationships.")
+                
+                total_edges = len(edges)
+                chunk_size = max(1, total_edges // 20)
+                for i in range(0, total_edges, chunk_size):
+                    chunk = edges[i : i + chunk_size]
+                    self.G.add_edges_from(chunk)
+                    self.progress_percent = 20 + int((i / total_edges) * 80)
+                    self.status = f"CONSTRUCTING: Mapped {i}/{total_edges} edges into System RAM..."
                         
                 self.node_count = self.G.number_of_nodes()
                 self.edge_count = self.G.number_of_edges()
-                self.ram_footprint = psutil.Process().memory_info().rss / (1024**3)
+                self.ram_footprint = psutil.Process().memory_info().rss / (1024**3) # GB
                 
+                self.progress_percent = 100
+                self.status = f"READY: Graph initialized in RAM."
                 self.is_built = True
-                self.status = f"READY: Mapped {self.node_count:,} real nodes and {self.edge_count:,} edges into {self.ram_footprint:.2f} GB RAM."
             except Exception as e:
                 self.status = f"CRASH: {str(e)}"
                 self.is_built = False
+                self.progress_percent = 0
                 
     def analyze_graph(self):
         if not self.is_built:

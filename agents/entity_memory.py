@@ -22,9 +22,11 @@ class EntityMemoryIndex:
         self.entity_data = pd.DataFrame()
         self.build_lock = threading.Lock()
         self.status = "IDLE"
+        self.progress_percent = 0
         
     def build_index(self, dataset_id, max_records=50000):
         with self.build_lock:
+            self.progress_percent = 0
             self.status = f"PULLING REAL DATA: Fetching {max_records} records from {dataset_id}..."
             try:
                 from data.dataset_manager import DatasetManager
@@ -37,6 +39,7 @@ class EntityMemoryIndex:
                 if isinstance(ds, pd.DataFrame) and "Error" in ds.columns:
                     raise RuntimeError(f"Dataset load failed: {ds.iloc[0]['Error']}")
                 
+                self.progress_percent = 10
                 self.status = "VECTORIZING: Fast C++ string conversion of Pandas rows..."
                 
                 if isinstance(ds, pd.DataFrame):
@@ -48,28 +51,45 @@ class EntityMemoryIndex:
                 df['vector_text'] = df.astype(str).agg(' '.join, axis=1)
                 self.entity_data = df
                 
+                self.progress_percent = 25
                 self.status = "INITIALIZING NEURAL NET: Loading SentenceTransformers into System RAM..."
                 if self.neural_encoder is None:
                     from sentence_transformers import SentenceTransformer
                     # Load model entirely to CPU RAM
                     self.neural_encoder = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
                 
-                self.status = f"EMBEDDING: Generating massive Neural Tensors across CPU cores..."
-                # Convert text blobs into 384-dimensional dense neural embeddings
-                self.vector_matrix = self.neural_encoder.encode(
-                    self.entity_data['vector_text'].tolist(), 
-                    batch_size=256, 
-                    show_progress_bar=False,
-                    convert_to_tensor=True,
-                    device='cpu'
-                )
+                texts = self.entity_data['vector_text'].tolist()
+                total_texts = len(texts)
+                batch_size = 256
+                total_batches = (total_texts // batch_size) + 1
+                
+                import torch
+                all_embeddings = []
+                
+                for i in range(total_batches):
+                    batch = texts[i*batch_size : (i+1)*batch_size]
+                    if not batch: break
+                    
+                    self.status = f"EMBEDDING: Generating Neural Tensors (Batch {i}/{total_batches})..."
+                    emb = self.neural_encoder.encode(
+                        batch, 
+                        show_progress_bar=False,
+                        convert_to_tensor=True,
+                        device='cpu'
+                    )
+                    all_embeddings.append(emb)
+                    self.progress_percent = 25 + int((i / total_batches) * 75)
+                
+                self.vector_matrix = torch.cat(all_embeddings, dim=0)
                 
                 self.is_built = True
+                self.progress_percent = 100
                 ram_used = psutil.Process().memory_info().rss / (1024 * 1024)
                 self.status = f"READY: Mapped {len(df)} entities into Neural Space. Process RAM: {ram_used:.1f} MB."
             except Exception as e:
                 self.status = f"CRASH: {str(e)}"
                 self.is_built = False
+                self.progress_percent = 0
                 
     def search(self, query, top_k=10):
         if not self.is_built or self.vector_matrix is None:

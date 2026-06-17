@@ -36,6 +36,7 @@ class RealTimeScenarioStreamer:
         self._thread = None
         self.dataset_records = []
         self.neural_model = None
+        self.progress_percent = 0
         
     def _fetch_real_data(self, dataset_id, max_records="50000"):
         self.status = f"PULLING REAL DATA: Fetching {max_records} records from {dataset_id}..."
@@ -60,17 +61,32 @@ class RealTimeScenarioStreamer:
             self.status = f"CRASH: {str(e)}"
             return False
 
-    def _stream_loop(self, tps, duration):
+    def _stream_loop(self, dataset_id, tps, duration):
         start_time = time.time()
         record_idx = 0
+        self.progress_percent = 0
+        
+        if not self._fetch_real_data(dataset_id):
+            self.is_running = False
+            return
+            
         max_idx = len(self.dataset_records)
         
         # Initialize Neural Network on CPU
         if self.neural_model is None:
+            self.status = "INITIALIZING NEURAL NET..."
             self.neural_model = NeuralFraudClassifier()
             self.neural_model.eval() # Inference mode
             
-        while self.is_running and (time.time() - start_time) < duration:
+        self.status = f"STREAMING: simulation using actual {dataset_id} records."
+        
+        while self.is_running:
+            elapsed = time.time() - start_time
+            if elapsed >= duration:
+                break
+                
+            self.progress_percent = int((elapsed / duration) * 100)
+            
             if record_idx >= max_idx:
                 record_idx = 0 # Loop back to start to simulate continuous stream
                 
@@ -129,6 +145,7 @@ class RealTimeScenarioStreamer:
             time.sleep(1.0) # 1 second tick
             
         self.is_running = False
+        self.progress_percent = 100
         self.status = "COMPLETED"
 
     def start_stream(self, dataset_id, scenario_type, duration_sec, tps):
@@ -139,14 +156,12 @@ class RealTimeScenarioStreamer:
         self.total_alerts = 0
         self.current_risk_avg = 0.0
         self.live_entities = []
-        
-        if not self._fetch_real_data(dataset_id):
-            return self.status
-            
+        self.progress_percent = 0
         self.is_running = True
-        self.status = f"STREAMING: {scenario_type} simulation using actual {dataset_id} records."
         
-        self._thread = threading.Thread(target=self._stream_loop, args=(int(tps), int(duration_sec)))
+        self.status = f"INITIALIZING: {scenario_type} using {dataset_id}..."
+        
+        self._thread = threading.Thread(target=self._stream_loop, args=(dataset_id, int(tps), int(duration_sec)))
         self._thread.start()
         return self.status
         
