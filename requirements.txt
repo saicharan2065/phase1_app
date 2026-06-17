@@ -22,3 +22,5 @@ transformers
 bitsandbytes
 trl
 peft
+
+hf_transfer

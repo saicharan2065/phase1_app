@@ -27,18 +27,39 @@ def update_estimates(limit_str):
 def load_dataset_ui(category, ds_dropdown, custom_ds, limit_str, username):
     dataset_id = custom_ds if category == "Custom Hugging Face Dataset" else ds_dropdown
     if not dataset_id:
-        return pd.DataFrame(), "Please select or enter a dataset ID."
+        yield pd.DataFrame(), "Please select or enter a dataset ID.", pd.DataFrame()
+        return
         
-    df = dm.load_dataset_records(dataset_id, limit_str, username)
-    if not df.empty and "Error" not in df.columns:
-        msg = f"Loaded {len(df)} rows from {dataset_id}"
-        # Universal Data Sync
-        from data.dataset_manager import get_user_workspace
-        get_user_workspace(username)[dataset_id] = df
-    else:
-        msg = df.iloc[0]["Error"] if "Error" in df.columns else "Dataset is empty."
-        
-    return df, msg
+    yield pd.DataFrame(), f"⏳ INITIALIZING: Starting background thread for {dataset_id}...", pd.DataFrame()
+    
+    import time
+    task_id = dm.start_async_download(dataset_id, limit_str, username)
+    
+    while True:
+        status_info = dm.background_tasks.get(task_id)
+        if not status_info:
+            break
+            
+        status = status_info["status"]
+        if status == "COMPLETE":
+            df = status_info["df"]
+            msg = f"✅ Loaded {len(df)} rows from {dataset_id}"
+            
+            # Universal Data Sync
+            from data.dataset_manager import get_user_workspace
+            get_user_workspace(username)[dataset_id] = df
+            
+            preview_df = safe_preview(df)
+            yield df, msg, preview_df
+            break
+            
+        elif status == "ERROR":
+            err = status_info["error"]
+            yield pd.DataFrame(), f"❌ ERROR: {err}", pd.DataFrame()
+            break
+            
+        yield pd.DataFrame(), f"⏳ BACKGROUND DOWNLOADING ({status}): Rust Acceleration Active...", pd.DataFrame()
+        time.sleep(1)
 
 def get_preview_info(df):
     if df is None or df.empty:
@@ -113,7 +134,7 @@ def create_dataset_marketplace_tab(session_user):
             s_load_btn.click(
                 load_dataset_ui, 
                 inputs=[s_cat, s_ds, s_custom, s_limit, session_user], 
-                outputs=[s_df_state, s_status]
+                outputs=[s_df_state, s_status, s_preview_table]
             ).then(
                 get_preview_info,
                 inputs=s_df_state,
@@ -147,7 +168,7 @@ def create_dataset_marketplace_tab(session_user):
             r_load_btn.click(
                 load_dataset_ui, 
                 inputs=[r_cat, r_ds, r_custom, r_limit, session_user], 
-                outputs=[r_df_state, r_status]
+                outputs=[r_df_state, r_status, r_preview_table]
             ).then(
                 get_preview_info,
                 inputs=r_df_state,
@@ -183,15 +204,8 @@ def create_dataset_marketplace_tab(session_user):
                 with gr.Tab("Validation Results"):
                     comp_table = gr.Dataframe(max_height=300)
                     
-            # Wire previews
-            s_load_btn.click(
-                safe_preview,
-                inputs=s_df_state, outputs=s_preview_table
-            )
-            r_load_btn.click(
-                safe_preview,
-                inputs=r_df_state, outputs=r_preview_table
-            )
+            # Previews are now directly yielded by the load_dataset_ui generator to avoid race conditions.
+            # Compare and Swap buttons remain the same.
             
             compare_btn.click(
                 run_comparison,

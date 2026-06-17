@@ -19,6 +19,8 @@ class DatasetManager:
         self.cache_dir = cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
         self.api = HfApi()
+        import uuid
+        self.background_tasks = {}
 
         # Hardcoded specific dataset mappings for our enterprise categories
         # as HuggingFace search can be noisy
@@ -55,7 +57,28 @@ class DatasetManager:
         except Exception as e:
             return {"error": str(e)}
 
-    def load_dataset_records(self, dataset_id, limit_str, username="GUEST"):
+    def start_async_download(self, dataset_id, limit_str, username="GUEST"):
+        import uuid
+        import threading
+        task_id = str(uuid.uuid4())
+        self.background_tasks[task_id] = {"status": "INITIALIZING", "df": None, "error": None}
+        
+        def worker():
+            try:
+                self.background_tasks[task_id]["status"] = "DOWNLOADING"
+                df = self._load_dataset_records_sync(dataset_id, limit_str, username)
+                self.background_tasks[task_id]["df"] = df
+                self.background_tasks[task_id]["status"] = "COMPLETE"
+            except Exception as e:
+                self.background_tasks[task_id]["error"] = str(e)
+                self.background_tasks[task_id]["status"] = "ERROR"
+                
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        return task_id
+
+    def _load_dataset_records_sync(self, dataset_id, limit_str, username="GUEST"):
         """
         Load dataset records lazily based on the selected limit.
         limit_str can be '100', '1000', '10000', '100000', '1000000', or 'ALL'
