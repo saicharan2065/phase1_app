@@ -358,8 +358,8 @@ def create_app():
             if success:
                 global GLOBAL_USERNAME
                 GLOBAL_USERNAME = uname
-                return gr.update(visible=False), gr.update(visible=True), uname
-            return gr.update(visible=True), gr.update(visible=False), ""
+                return gr.update(visible=False), gr.update(visible=True), uname, "Login Successful"
+            return gr.update(visible=True), gr.update(visible=False), "", f"Login Failed: {msg}"
             
         def handle_request(username, email, password):
             success, msg = auth_engine.request_otp(email, password, username)
@@ -369,9 +369,7 @@ def create_app():
             success, msg = auth_engine.verify_otp(email, otp)
             return msg
             
-        log_btn.click(fn=handle_login, inputs=[log_email, log_pass], outputs=[auth_view, os_view, session_user]).then(
-            fn=lambda msg: msg if not msg else "Login Failed", inputs=session_user, outputs=log_status
-        )
+        log_btn.click(fn=handle_login, inputs=[log_email, log_pass], outputs=[auth_view, os_view, session_user, log_status])
         
         def handle_logout():
             global GLOBAL_USERNAME

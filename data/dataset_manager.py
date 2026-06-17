@@ -94,14 +94,14 @@ class DatasetManager:
                 dataset_id = "vicenteor/sbu_captions"
             pass
 
-            # We use streaming=True to avoid downloading huge files if the user only wants 100 rows
-            # Load dataset lazily without hardcoded split
-            ds_dict = load_dataset(dataset_id, streaming=True, cache_dir=self.cache_dir)
+            # We removed streaming=True to allow datasets to permanently download to the hard drive cache
+            # WARNING: Loading massive datasets like wikimedia/wit_base will now download hundreds of gigabytes!
+            ds_dict = load_dataset(dataset_id, cache_dir=self.cache_dir)
             split_name = list(ds_dict.keys())[0]
             ds = ds_dict[split_name]
             
             if limit:
-                ds = ds.take(limit)
+                ds = ds.select(range(min(limit, len(ds))))
                 
             # Convert stream to pandas, dropping heavy objects that crash Gradio UI
             clean_records = []
