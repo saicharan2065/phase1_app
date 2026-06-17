@@ -58,17 +58,14 @@ class QLoRATrainer:
                 
                 actual_model = model_id
                 
+                from agents.vram_manager import vram_manager
+                
                 with self._lock:
-                    # Disable BitsAndBytes 4-bit to bypass ROCm mismatch
-                    model = AutoModelForCausalLM.from_pretrained(
-                        actual_model,
-                        device_map="auto",
-                        torch_dtype=torch.float16,
-                        trust_remote_code=True,
-                        use_safetensors=True
-                    )
-                    tokenizer = AutoTokenizer.from_pretrained(actual_model, trust_remote_code=True)
-                    tokenizer.pad_token = tokenizer.eos_token
+                    # Use CPU-only instance to prevent concurrent CUDA deadlocks with Bulk SAR
+                    self.model, self.tokenizer = vram_manager.get_or_load_model(actual_model, use_4bit=False, force_cpu=True)
+                    
+                    if self.tokenizer.pad_token is None:
+                        self.tokenizer.pad_token = self.tokenizer.eos_token
                 
                 lora_config = LoraConfig(
                     r=8, 
@@ -78,7 +75,7 @@ class QLoRATrainer:
                     bias="none", 
                     task_type="CAUSAL_LM"
                 )
-                model = get_peft_model(model, lora_config)
+                model_peft = get_peft_model(self.model, lora_config)
                 
                 from data.dataset_manager import DatasetManager
                 import pandas as pd
@@ -123,10 +120,10 @@ class QLoRATrainer:
                 )
                 
                 trainer = SFTTrainer(
-                    model=model,
+                    model=model_peft,
                     train_dataset=real_data,
                     dataset_text_field="text",
-                    max_seq_length=128,
+                    max_seq_length=512,
                     args=args,
                 )
                 
