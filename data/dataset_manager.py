@@ -225,6 +225,20 @@ class DatasetManager:
             
             try:
                 shutil.rmtree(target_path, ignore_errors=False)
+                
+                # AGGRESSIVELY WIPE GLOBAL HF DOWNLOAD CACHE
+                # Hugging Face hides gigabytes of raw .parquet internet downloads here
+                # Even though the dataset is extracted into storage/datasets_cache!
+                hf_cache = os.path.expanduser("~/.cache/huggingface/datasets")
+                if os.path.exists(hf_cache):
+                    import stat
+                    # Force delete readonly files
+                    def remove_readonly(func, path, excinfo):
+                        os.chmod(path, stat.S_IWRITE)
+                        func(path)
+                    shutil.rmtree(hf_cache, onerror=remove_readonly)
+                    os.makedirs(hf_cache, exist_ok=True)
+                    
                 return f"Successfully deleted {dataset_folder} from cache."
             except Exception as e:
                 return f"❌ Failed to delete (File Locked): Close the dataset in the UI or restart the server. ({str(e)})"
