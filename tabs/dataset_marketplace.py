@@ -195,6 +195,10 @@ def create_dataset_marketplace_tab(session_user):
     # Actions and Previews
     with gr.Row():
         with gr.Column(scale=1):
+            # Define simple clear logic here so it can be referenced by cache buttons
+            def clear_datasets():
+                return pd.DataFrame(), pd.DataFrame(), "", ""
+                
             with gr.Group():
                 gr.Markdown("#### COMPARISON ACTIONS")
                 with gr.Row():
@@ -295,9 +299,7 @@ def create_dataset_marketplace_tab(session_user):
                 inputs=r_df_state, outputs=r_preview_table
             )
             
-            # Simple clear logic
-            def clear_datasets():
-                return pd.DataFrame(), pd.DataFrame(), "", ""
+            # The clear_datasets function is now defined at the top of this column block
                 
             clear_btn.click(
                 clear_datasets,
