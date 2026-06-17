@@ -18,12 +18,18 @@ class ChatbotEngine:
         # Clean the model ID to remove the appended size from the UI (e.g. ' (24.87 GB)')
         clean_model_id = active_model_id.split(" (")[0] if active_model_id and " (" in active_model_id else active_model_id
         
+        # Prevent Vision Models in Text Chatbot
+        if "llava" in clean_model_id.lower() or "vision" in clean_model_id.lower():
+            yield f"ERROR: '{clean_model_id}' is a Vision-Language Model. The Text Chatbot only supports Causal Language Models (like Qwen or Deepseek)."
+            return
+
         # Check if we need to load or switch models
         if clean_model_id not in vram_manager.models:
-            yield f"Loading {clean_model_id} into VRAM... This may take a moment for large parameters..."
+            yield f"Loading {clean_model_id} into VRAM in FP16 (16-bit)..."
             try:
                 self.is_loading = True
-                _MODEL, _TOKENIZER = vram_manager.get_or_load_model(clean_model_id, use_4bit=True)
+                # Disable 4-bit quantization to bypass BitsAndBytes ROCm 6.0 mismatch
+                _MODEL, _TOKENIZER = vram_manager.get_or_load_model(clean_model_id, use_4bit=False)
                 self.is_loading = False
             except Exception as e:
                 self.is_loading = False

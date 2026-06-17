@@ -58,17 +58,17 @@ class QLoRATrainer:
                 
                 actual_model = model_id
                 
-                tokenizer = AutoTokenizer.from_pretrained(actual_model)
-                tokenizer.pad_token = tokenizer.eos_token
-                
-                bnb_config = BitsAndBytesConfig(load_in_4bit=True)
-                
-                model = AutoModelForCausalLM.from_pretrained(
-                    actual_model,
-                    quantization_config=bnb_config,
-                    device_map="auto",
-                    use_safetensors=True
-                )
+                with self._lock:
+                    # Disable BitsAndBytes 4-bit to bypass ROCm mismatch
+                    model = AutoModelForCausalLM.from_pretrained(
+                        actual_model,
+                        device_map="auto",
+                        torch_dtype=torch.float16,
+                        trust_remote_code=True,
+                        use_safetensors=True
+                    )
+                    tokenizer = AutoTokenizer.from_pretrained(actual_model, trust_remote_code=True)
+                    tokenizer.pad_token = tokenizer.eos_token
                 
                 lora_config = LoraConfig(
                     r=8, 

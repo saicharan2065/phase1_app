@@ -26,7 +26,7 @@ class BulkSARGenerator:
             active_model = get_active_model_state()
             model_id = active_model if active_model and active_model != "None Selected" else "Qwen/Qwen1.5-0.5B"
             
-            self.model, self.tokenizer = vram_manager.get_or_load_model(model_id, use_4bit=True)
+            self.model, self.tokenizer = vram_manager.get_or_load_model(model_id, use_4bit=False)
             self.model_loaded = True
             self.status_message = f"Successfully mounted {model_id} onto MI300X."
         except ImportError as e:
