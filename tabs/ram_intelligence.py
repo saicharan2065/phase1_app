@@ -56,6 +56,7 @@ def create_ram_intelligence_tab():
                     
                 def trigger_build_mem(ds, enc):
                     import threading
+                    # Using 50,000 rows again since VRAM acceleration is active
                     t = threading.Thread(target=entity_memory_index.build_index, args=(ds, enc, 50000))
                     t.start()
                     return "Initializing memory build sequence in background..."

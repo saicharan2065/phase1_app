@@ -61,9 +61,12 @@ class EntityMemoryIndex:
                     
                 self.status = f"INITIALIZING NEURAL NET: Loading {model_name} into System RAM..."
                 
+                import torch
+                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                
                 if self.neural_encoder is None or self.active_encoder != model_name:
                     from sentence_transformers import SentenceTransformer
-                    self.neural_encoder = SentenceTransformer(model_name, device='cpu')
+                    self.neural_encoder = SentenceTransformer(model_name, device=device)
                     self.active_encoder = model_name
                 
                 # Auto-Detect Visual Columns (PIL Objects or URLs/Files)
@@ -91,7 +94,6 @@ class EntityMemoryIndex:
                 batch_size = 256 if not visual_col else 32 # Smaller batch for images to save RAM
                 total_batches = (total_texts // batch_size) + 1
                 
-                import torch
                 all_embeddings = []
                 
                 for i in range(total_batches):
@@ -99,7 +101,7 @@ class EntityMemoryIndex:
                     if not batch_texts: break
                     
                     self.status = f"EMBEDDING: Generating Neural Tensors (Batch {i}/{total_batches})..."
-                    text_emb = self.neural_encoder.encode(batch_texts, show_progress_bar=False, convert_to_tensor=True, device='cpu')
+                    text_emb = self.neural_encoder.encode(batch_texts, show_progress_bar=False, convert_to_tensor=True, device=device)
                     
                     if visual_col:
                         batch_vis_raw = visuals[i*batch_size : (i+1)*batch_size]
@@ -129,13 +131,14 @@ class EntityMemoryIndex:
                             except Exception:
                                 batch_images.append(Image.new('RGB', (224, 224), color='black'))
                                 
-                        img_emb = self.neural_encoder.encode(batch_images, show_progress_bar=False, convert_to_tensor=True, device='cpu')
+                        img_emb = self.neural_encoder.encode(batch_images, show_progress_bar=False, convert_to_tensor=True, device=device)
                         # Mathematical Fusion: Average text and image tensors
                         final_emb = (text_emb + img_emb) / 2.0
                     else:
                         final_emb = text_emb
                         
-                    all_embeddings.append(final_emb)
+                    # CRITICAL: Move VRAM tensors back to SysRAM (CPU) immediately to allow extreme scaling
+                    all_embeddings.append(final_emb.cpu())
                     self.progress_percent = 25 + int((i / total_batches) * 75)
                 
                 self.vector_matrix = torch.cat(all_embeddings, dim=0)
