@@ -14,12 +14,12 @@ def _download_worker(dataset_id, cache_dir):
     try:
         from datasets import load_dataset
         
-        if dataset_id == "conceptual_captions":
-            dataset_id = "google-research-datasets/conceptual_captions"
-        elif dataset_id == "sbu_captions":
-            dataset_id = "vicenteor/sbu_captions"
-            
-        if not (dataset_id.startswith("http://") or dataset_id.startswith("https://")):
+        if dataset_id.startswith("http://") or dataset_id.startswith("https://"):
+            if dataset_id.endswith(".csv"):
+                load_dataset("csv", data_files=dataset_id, cache_dir=cache_dir)
+            elif dataset_id.endswith(".json"):
+                load_dataset("json", data_files=dataset_id, cache_dir=cache_dir)
+        else:
             load_dataset(dataset_id, cache_dir=cache_dir)
     except Exception as e:
         safe_id = str(dataset_id).replace("/", "_").replace("\\", "_")
@@ -83,6 +83,16 @@ class DatasetManager:
         import uuid
         task_id = str(uuid.uuid4())
         
+        # Pre-process URLs before handing off to multiprocessing
+        if dataset_id.startswith("http://") or dataset_id.startswith("https://"):
+            if "huggingface.co/datasets/" in dataset_id:
+                dataset_id = dataset_id.split("huggingface.co/datasets/")[-1].strip("/")
+                
+        if dataset_id == "conceptual_captions":
+            dataset_id = "google-research-datasets/conceptual_captions"
+        elif dataset_id == "sbu_captions":
+            dataset_id = "vicenteor/sbu_captions"
+            
         p = multiprocessing.Process(target=_download_worker, args=(dataset_id, self.cache_dir))
         p.daemon = True
         p.start()
@@ -113,32 +123,16 @@ class DatasetManager:
                     return df.head(limit)
                 return df
             
-            # Intercept and Parse URLs
+            # Route all data through Hugging Face Apache Arrow pipeline to enforce Zero-RAM
             if dataset_id.startswith("http://") or dataset_id.startswith("https://"):
-                if "huggingface.co/datasets/" in dataset_id:
-                    # Extract the pure repository ID
-                    # e.g. https://huggingface.co/datasets/google-research-datasets/conceptual_captions
-                    dataset_id = dataset_id.split("huggingface.co/datasets/")[-1].strip("/")
+                if dataset_id.endswith(".csv"):
+                    ds_dict = load_dataset("csv", data_files=dataset_id, cache_dir=self.cache_dir)
+                elif dataset_id.endswith(".json"):
+                    ds_dict = load_dataset("json", data_files=dataset_id, cache_dir=self.cache_dir)
                 else:
-                    # Raw web URL to a CSV or JSON file
-                    if dataset_id.endswith(".json"):
-                        df = pd.read_json(dataset_id)
-                    else:
-                        df = pd.read_csv(dataset_id)
-                    if limit:
-                        return df.head(limit)
-                    return df
-                    
-            # Auto-correct common un-namespaced datasets
-            if dataset_id == "conceptual_captions":
-                dataset_id = "google-research-datasets/conceptual_captions"
-            elif dataset_id == "sbu_captions":
-                dataset_id = "vicenteor/sbu_captions"
-            pass
-
-            # We removed streaming=True to allow datasets to permanently download to the hard drive cache
-            # WARNING: Loading massive datasets like wikimedia/wit_base will now download hundreds of gigabytes!
-            ds_dict = load_dataset(dataset_id, cache_dir=self.cache_dir)
+                    return pd.DataFrame([{"Error": "Unsupported URL format. Only .csv, .json, or Hugging Face repos allowed."}])
+            else:
+                ds_dict = load_dataset(dataset_id, cache_dir=self.cache_dir)
             split_name = list(ds_dict.keys())[0]
             ds = ds_dict[split_name]
             
