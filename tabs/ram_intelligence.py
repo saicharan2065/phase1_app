@@ -3,6 +3,8 @@ from agents.entity_memory import entity_memory_index
 from agents.scenario_simulator import scenario_simulator
 from agents.ram_graph_engine import ram_graph_engine
 import threading
+import pandas as pd
+import psutil
 
 def create_ram_intelligence_tab():
     with gr.TabItem("2TB RAM Intelligence", id="ram_intel"):
