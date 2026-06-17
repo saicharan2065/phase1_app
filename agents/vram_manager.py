@@ -19,15 +19,30 @@ class VRAMManager:
     def _initialize(self):
         self.models = {}
         self.tokenizers = {}
-        self.mount_lock = threading.Lock()
+        self.gpu_lock = threading.Lock()  # Only for GPU/VRAM model loads
+        self.cpu_lock = threading.Lock()  # Only for CPU/System RAM model loads
         self.abort_requested = False
+        
+    @property
+    def mount_lock(self):
+        """Backwards compatibility for purge_vram and abort logic."""
+        return self.gpu_lock
         
     def get_or_load_model(self, model_id, model_type="causal", use_4bit=False, force_cpu=False):
         """
         Returns the requested model if it is already cached in RAM/VRAM. 
         Otherwise, mounts it using Accelerate CPU offloading or strictly CPU.
+        CPU loads use a separate lock so the chatbot never blocks behind GPU engines.
         """
-        with self.mount_lock:
+        # Fast path: return immediately if already cached (no lock needed)
+        if model_id in self.models and self.models[model_id] is not None:
+            return self.models[model_id], self.tokenizers.get(model_id)
+        
+        # Pick the correct lock based on target hardware
+        active_lock = self.cpu_lock if force_cpu else self.gpu_lock
+        
+        with active_lock:
+            # Double-check after acquiring lock (another thread may have loaded it)
             if model_id in self.models and self.models[model_id] is not None:
                 return self.models[model_id], self.tokenizers.get(model_id)
                 
@@ -51,7 +66,7 @@ class VRAMManager:
             
             target_device_map = "cpu" if force_cpu else "auto"
             
-            # MI300X ROCm PyTorch Compatibility Monkeypatch for BitsAndBytes
+            # MI300X ROCm PyTorch Compatibility Monkeypatch
             if not hasattr(nn.Module, "set_submodule"):
                 def set_submodule(self, target: str, module: nn.Module) -> None:
                     atoms: list[str] = target.split(".")
@@ -102,7 +117,7 @@ class VRAMManager:
             return self.models[model_id], self.tokenizers[model_id]
             
     def purge_vram(self):
-        acquired = self.mount_lock.acquire(blocking=False)
+        acquired = self.gpu_lock.acquire(blocking=False)
         if not acquired:
             self.abort_requested = True
             return False
@@ -127,7 +142,7 @@ class VRAMManager:
             self.abort_requested = False
             return True
         finally:
-            self.mount_lock.release()
+            self.gpu_lock.release()
 
 # Global Singleton Instance
 vram_manager = VRAMManager()
