@@ -70,7 +70,7 @@ class GNNEngine:
         except Exception as e:
             raise RuntimeError(f"MI300X CUDA EXECUTION ERROR: {str(e)}")
             
-    def run_deep_graph_analytics(self, skip_gpu=False):
+    def run_deep_graph_analytics(self, skip_gpu=False, sync_barrier=None):
         self.is_running = True
         self.processed_nodes = 0
         self.findings = []
@@ -79,6 +79,12 @@ class GNNEngine:
             # Phase 1: Construct Adjacency Matrix in RAM
             self.status_message = "RAM ALLOCATION: Constructing 500M Node Adjacency Matrix in System RAM..."
             
+            if sync_barrier:
+                self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
+                try:
+                    sync_barrier.wait()
+                except Exception: pass
+                
             # Phase 2: Compute in VRAM
             self.status_message = "VRAM COMPUTE: Running Graph Convolutional Network on MI300X..."
             

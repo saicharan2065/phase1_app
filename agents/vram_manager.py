@@ -44,6 +44,23 @@ class VRAMManager:
                     torch.cuda.empty_cache()
                     
             import torch
+            import torch.nn as nn
+            
+            # MI300X ROCm PyTorch Compatibility Monkeypatch for BitsAndBytes
+            if not hasattr(nn.Module, "set_submodule"):
+                def set_submodule(self, target: str, module: nn.Module) -> None:
+                    atoms: list[str] = target.split(".")
+                    name = atoms.pop(-1)
+                    mod = self
+                    for item in atoms:
+                        if not hasattr(mod, item):
+                            raise AttributeError(f"Module has no attribute `{item}`")
+                        mod = getattr(mod, item)
+                        if not isinstance(mod, nn.Module):
+                            raise AttributeError("`{}` is not an nn.Module".format(item))
+                    setattr(mod, name, module)
+                nn.Module.set_submodule = set_submodule
+                
             from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
             
             self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)

@@ -64,7 +64,7 @@ class VisionForensicsEngine:
         with self._lock:
             self.processed_count += batch_size
             
-    def run_mass_forensics(self, model_id="llava-hf/llava-1.5-13b-hf", skip_gpu=False):
+    def run_mass_forensics(self, model_id="llava-hf/llava-1.5-13b-hf", skip_gpu=False, sync_barrier=None):
         self.is_running = True
         self.processed_count = 0
         self.findings = []
@@ -73,6 +73,12 @@ class VisionForensicsEngine:
             self.status_message = f"INITIALIZING MI300X: Mounting Vision-Language Model {model_id}..."
             self._initialize_vlm_engine(model_id)
             
+            if sync_barrier:
+                self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
+                try:
+                    sync_barrier.wait()
+                except Exception: pass
+                
             # Batch Processing
             self.status_message = "BATCH PROCESSING: Analyzing 10,000 KYC Documents..."
             

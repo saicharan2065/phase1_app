@@ -13,7 +13,7 @@ class QLoRATrainer:
         self.status_message = "IDLE"
         self.status_message = "IDLE"
         
-    def _simulate_qlora_training(self, dataset_id, model_id, skip_gpu):
+    def _simulate_qlora_training(self, dataset_id, model_id, skip_gpu, sync_barrier=None):
         self.is_training = True
         self.progress_percent = 0
         self.current_epoch = 1
@@ -24,6 +24,23 @@ class QLoRATrainer:
         has_libraries = False
         try:
             import torch
+            import torch.nn as nn
+            
+            # MI300X ROCm PyTorch Compatibility Monkeypatch for BitsAndBytes
+            if not hasattr(nn.Module, "set_submodule"):
+                def set_submodule(self, target: str, module: nn.Module) -> None:
+                    atoms: list[str] = target.split(".")
+                    name = atoms.pop(-1)
+                    mod = self
+                    for item in atoms:
+                        if not hasattr(mod, item):
+                            raise AttributeError(f"Module has no attribute `{item}`")
+                        mod = getattr(mod, item)
+                        if not isinstance(mod, nn.Module):
+                            raise AttributeError("`{}` is not an nn.Module".format(item))
+                    setattr(mod, name, module)
+                nn.Module.set_submodule = set_submodule
+                
             from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
             from peft import LoraConfig, get_peft_model
             from trl import SFTTrainer
@@ -84,6 +101,12 @@ class QLoRATrainer:
                     args=args,
                 )
                 
+                if sync_barrier:
+                    self.status_message = "WAITING FOR OTHER ENGINES TO MOUNT..."
+                    try:
+                        sync_barrier.wait()
+                    except Exception: pass
+                    
                 self.status_message = "TRAINING: Executing real PyTorch backward pass on MI300X..."
                 
                 # We can't easily hook into Trainer for live progress bars in gradio without a custom callback
@@ -112,12 +135,12 @@ class QLoRATrainer:
         self.status_message = "COMPLETE: Neural Rewiring Finished."
         self.is_training = False
         
-    def start_training(self, dataset_id, model_id, skip_gpu=False):
+    def start_training(self, dataset_id, model_id, skip_gpu=False, sync_barrier=None):
         if self.is_training:
             return "Training is already in progress!"
             
         import threading
-        threading.Thread(target=self._simulate_qlora_training, args=(dataset_id, model_id, skip_gpu), daemon=True).start()
+        threading.Thread(target=self._simulate_qlora_training, args=(dataset_id, model_id, skip_gpu, sync_barrier), daemon=True).start()
             
         return "Neural Rewiring Initialized in Background."
         

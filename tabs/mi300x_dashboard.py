@@ -71,14 +71,22 @@ def trigger_all(target_dataset, target_llm, target_vlm, session_user):
     # Launch ALL 4 models concurrently into VRAM (Requires massive hardware, which the user has)
     
     # Start UI threads with REAL hardware execution!
-    if not bulk_engine.is_running:
-        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False)).start()
-    if not qlora_engine.is_training:
-        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", clean_llm, False)).start()
-    if not vision_engine.is_running:
-        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False}).start()
-    if not gnn_engine.is_running:
-        threading.Thread(target=gnn_engine.run_deep_graph_analytics, kwargs={'skip_gpu': False}).start()
+    engines_to_start = []
+    if not bulk_engine.is_running: engines_to_start.append("bulk")
+    if not qlora_engine.is_training: engines_to_start.append("qlora")
+    if not vision_engine.is_running: engines_to_start.append("vision")
+    if not gnn_engine.is_running: engines_to_start.append("gnn")
+    
+    barrier = threading.Barrier(len(engines_to_start)) if len(engines_to_start) > 0 else None
+    
+    if "bulk" in engines_to_start:
+        threading.Thread(target=bulk_engine.run_bulk_inference, args=([f"SUSPECT_{i}" for i in range(10000)], 32, False, barrier)).start()
+    if "qlora" in engines_to_start:
+        threading.Thread(target=qlora_engine.start_training, args=("gretelai/synthetic_pii_finance", clean_llm, False, barrier)).start()
+    if "vision" in engines_to_start:
+        threading.Thread(target=vision_engine.run_mass_forensics, kwargs={'model_id': clean_vlm, 'skip_gpu': False, 'sync_barrier': barrier}).start()
+    if "gnn" in engines_to_start:
+        threading.Thread(target=gnn_engine.run_deep_graph_analytics, kwargs={'skip_gpu': False, 'sync_barrier': barrier}).start()
         
     return f"[☢️] GLOBAL MI300X STRESS TEST EXECUTED ON '{target_dataset}'! REAL HARDWARE PIPELINES LAUNCHED."
         
