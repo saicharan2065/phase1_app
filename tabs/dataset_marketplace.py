@@ -206,6 +206,10 @@ def create_dataset_marketplace_tab(session_user):
                 clear_cache_btn = gr.Button("Clear Cache")
                 clear_cache_btn.click(clear_cache_ui, outputs=cache_info)
                 
+                # Make the Cache Size metric real-time
+                timer = gr.Timer(2)
+                timer.tick(fn=refresh_cache_info, outputs=cache_info)
+                
 
         with gr.Column(scale=3):
             gr.Markdown("#### DATA PREVIEWS")
